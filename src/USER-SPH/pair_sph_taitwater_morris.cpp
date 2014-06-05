@@ -21,6 +21,7 @@
 #include "memory.h"
 #include "error.h"
 #include "domain.h"
+#include "sph_kernel_dispatch.h"
 
 using namespace LAMMPS_NS;
 
@@ -28,6 +29,7 @@ using namespace LAMMPS_NS;
 
 PairSPHTaitwaterMorris::PairSPHTaitwaterMorris(LAMMPS *lmp) : Pair(lmp)
 {
+  ker = sph_kernel_dispatch("preved", 2);
   restartinfo = 0;
   first = 1;
 }

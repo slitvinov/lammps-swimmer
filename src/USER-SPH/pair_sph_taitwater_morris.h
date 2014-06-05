@@ -23,7 +23,7 @@ PairStyle(sph/taitwater/morris,PairSPHTaitwaterMorris)
 #include "pair.h"
 
 namespace LAMMPS_NS {
-
+class SPHKernel;
 class PairSPHTaitwaterMorris : public Pair {
  public:
   PairSPHTaitwaterMorris(class LAMMPS *);
@@ -39,6 +39,7 @@ class PairSPHTaitwaterMorris : public Pair {
   double **cut,**viscosity;
   int first;
 
+  SPHKernel* ker;
   void allocate();
 };
 
