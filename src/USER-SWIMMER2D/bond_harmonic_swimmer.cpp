@@ -25,12 +25,15 @@
 #include "force.h"
 #include "memory.h"
 #include "error.h"
+#include "update.h"
 
 using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-BondHarmonicSwimmer::BondHarmonicSwimmer(LAMMPS *lmp) : Bond(lmp) {}
+BondHarmonicSwimmer::BondHarmonicSwimmer(LAMMPS *lmp) : Bond(lmp) {
+  time_origin = update->ntimestep;
+}
 
 /* ---------------------------------------------------------------------- */
 
@@ -62,6 +65,7 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
   int nbondlist = neighbor->nbondlist;
   int nlocal = atom->nlocal;
   int newton_bond = force->newton_bond;
+  double delta = (update->ntimestep - time_origin) * update->dt;
 
   for (n = 0; n < nbondlist; n++) {
     i1 = bondlist[n][0];
