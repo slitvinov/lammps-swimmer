@@ -29,6 +29,8 @@
 
 using namespace LAMMPS_NS;
 
+#define EPSILON 1.0e-20
+
 /* ---------------------------------------------------------------------- */
 
 BondHarmonicSwimmer::BondHarmonicSwimmer(LAMMPS *lmp) : Bond(lmp) {
@@ -49,6 +51,9 @@ BondHarmonicSwimmer::~BondHarmonicSwimmer()
     memory->destroy(omega);
     memory->destroy(phi);
     memory->destroy(vel_sw);
+
+    memory->destroy(n1);
+    memory->destroy(n2);
   }
 }
 
@@ -90,7 +95,6 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
     }
  
     type = bondlist[n][2];
-    printf("A, omega, phi, vel_sw: %g %g %g %g\n", A[type], omega[type], phi[type], vel_sw[type]);
 
     delx = x[i1][0] - x[i2][0];
     dely = x[i1][1] - x[i2][1];
@@ -99,9 +103,16 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
     rsq = delx*delx + dely*dely + delz*delz;
     r = sqrt(rsq);
    
-    if ( (tag1==1) && ( tag2==2))  {
-       r0_local = r0[type] + A[type]*sin(omega[type]*static_cast<double>(tag1) + phi[type] - vel_sw[type]*delta);
-       printf("to_grep: %g %g\n", delta, r0_local);
+    if ( (tag1>=n1[type]) && (tag1<=n2[type]) && ((tag2-tag1)==1) ) {
+       double s_aux = sin(omega[type]*(static_cast<double>(tag1) - n1[type]) + phi[type] - vel_sw[type]*delta);
+       if (s_aux>EPSILON) {
+         s_aux = 1;
+       } else if (s_aux<-EPSILON) {
+         s_aux = -1;
+       } else {
+         s_aux = 0;
+       }
+       r0_local = r0[type] + A[type]*s_aux ;
     } else {
        r0_local = r0[type];
     }
@@ -151,6 +162,9 @@ void BondHarmonicSwimmer::allocate()
   memory->create(phi,    n+1,"bond:phi");
   memory->create(vel_sw,    n+1,"bond:vel_sw");
 
+  memory->create(n1,    n+1,"bond:n1");
+  memory->create(n2,    n+1,"bond:n2");
+
   memory->create(setflag,n+1,"bond:setflag");
 
   for (int i = 1; i <= n; i++) setflag[i] = 0;
@@ -162,7 +176,7 @@ void BondHarmonicSwimmer::allocate()
 
 void BondHarmonicSwimmer::coeff(int narg, char **arg)
 {
-  if (narg != 8) error->all(FLERR,"Incorrect args for bond coefficients");
+  if (narg != 10) error->all(FLERR,"Incorrect args for bond coefficients");
   if (!allocated) allocate();
   
   if (atom->tag_enable==0) {
@@ -182,6 +196,9 @@ void BondHarmonicSwimmer::coeff(int narg, char **arg)
   double phi_one = force->numeric(FLERR,arg[6]);
   double vel_sw_one = force->numeric(FLERR,arg[7]);
 
+  tagint n1_one = force->numeric(FLERR,arg[8]);
+  tagint n2_one = force->numeric(FLERR,arg[9]);
+
   if (r0_one == r1_one)
     error->all(FLERR,"Bond harmonic/swimmer r0 and r1 must be different");
 
@@ -195,6 +212,9 @@ void BondHarmonicSwimmer::coeff(int narg, char **arg)
     omega[i] = omega_one;
     phi[i] = phi_one;
     vel_sw[i] = vel_sw_one;
+
+    n1[i] = n1_one;
+    n2[i] = n2_one;
 
     setflag[i] = 1;
     count++;
