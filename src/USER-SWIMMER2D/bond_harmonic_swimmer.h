@@ -39,6 +39,7 @@ class BondHarmonicSwimmer : public Bond {
 
  protected:
   double *k,*r0,*r1;
+  double *A, *omega, *phi, *vel_sw;
   bigint time_origin;
 
   void allocate();
