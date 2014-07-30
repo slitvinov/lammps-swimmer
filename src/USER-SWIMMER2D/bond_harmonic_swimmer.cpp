@@ -82,6 +82,7 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
 
     tag1 = tag[i1];
     tag2 = tag[i2];
+
     if (tag1>=tag2) {
        char str[128];
        sprintf(str,"tag1>=tag2: something wrong with a bond between %i and %i", i1, i2);
@@ -89,6 +90,7 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
     }
  
     type = bondlist[n][2];
+    printf("A, omega, phi, vel_sw: %g %g %g %g\n", A[type], omega[type], phi[type], vel_sw[type]);
 
     delx = x[i1][0] - x[i2][0];
     dely = x[i1][1] - x[i2][1];
@@ -98,7 +100,8 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
     r = sqrt(rsq);
    
     if ( (tag1==1) && ( tag2==2))  {
-       r0_local = 0.25*r0[type];
+       r0_local = r0[type] + A[type]*sin(omega[type]*static_cast<double>(tag1) + phi[type] - vel_sw[type]*delta);
+       printf("to_grep: %g %g\n", delta, r0_local);
     } else {
        r0_local = r0[type];
     }
