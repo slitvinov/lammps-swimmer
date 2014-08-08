@@ -16,7 +16,7 @@
 
 namespace  LAMMPS_NS {
   class SPHKernel;
-  enum SPHKernelCodeType { Lucy2D };
+  enum SPHKernelCodeType { Lucy2D, Lucy3D };
 
   SPHKernelCodeType sph_kernel_code(char* kernel_name, int kernel_dimension,
 				    Error *error);
