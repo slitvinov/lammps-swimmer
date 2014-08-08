@@ -58,7 +58,7 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double vxtmp, vytmp, vztmp, imass, jmass, fi, fj, fvisc, h, ih, ihsq, velx, vely, velz;
+  double vxtmp, vytmp, vztmp, imass, jmass, h, r, fi, fj, fvisc, velx, vely, velz;
   double rsq, tmp, wfd, delVdotDelR, deltaE;
 
   if (eflag || vflag)
@@ -141,22 +141,13 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
       jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
+	r = sqrt(rsq);
         h = cut[itype][jtype];
-        ih = 1.0 / h;
-        ihsq = ih * ih;
-
-        wfd = h - sqrt(rsq);
         if (domain->dimension == 3) {
-          // Lucy Kernel, 3d
-          // Note that wfd, the derivative of the weight function with respect to r,
-          // is lacking a factor of r.
-          // The missing factor of r is recovered by
-          // (1) using delV . delX instead of delV . (delX/r) and
-          // (2) using f[i][0] += delx * fpair instead of f[i][0] += (delx/r) * fpair
-          wfd = -25.066903536973515383e0 * wfd * wfd * ihsq * ihsq * ihsq * ih * sqrt(rsq);
+          wfd = ker[itype][jtype]->dw(r, h);
         } else {
           // Lucy Kernel, 2d
-          wfd = -19.098593171027440292e0 * wfd * wfd * ihsq * ihsq * ihsq * sqrt(rsq);
+          wfd = ker[itype][jtype]->dw(r, h);
         }
 
         // compute pressure  of atom j with Tait EOS
