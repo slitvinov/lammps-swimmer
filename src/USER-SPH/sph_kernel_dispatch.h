@@ -16,7 +16,8 @@
 
 class SPHKernel;
 namespace  LAMMPS_NS {
-  SPHKernel* sph_kernel_dispatch(char* kernel_name, int kernel_dimension);
+  SPHKernel* sph_kernel_dispatch(char* kernel_name, int kernel_dimension,
+				 LAMMPS_NS::Error *error);
 };
 
 #endif

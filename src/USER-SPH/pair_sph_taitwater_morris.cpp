@@ -29,7 +29,7 @@ using namespace LAMMPS_NS;
 
 PairSPHTaitwaterMorris::PairSPHTaitwaterMorris(LAMMPS *lmp) : Pair(lmp)
 {
-  ker = sph_kernel_dispatch("preved", 2);
+  ker = sph_kernel_dispatch("lucy", 2, error);
   restartinfo = 0;
   first = 1;
 }
