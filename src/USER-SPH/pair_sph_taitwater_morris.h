@@ -39,7 +39,7 @@ class PairSPHTaitwaterMorris : public Pair {
   double **cut,**viscosity;
   int first;
 
-  SPHKernel* ker;
+  SPHKernel  ***ker;
   void allocate();
 };
 
