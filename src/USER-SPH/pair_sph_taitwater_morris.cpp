@@ -102,7 +102,6 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
       ker[i][j] = sph_kernel_decode(kernel_code[i][j], error);
     }
   }
-  printf("kernel values: %e       %e\n",   ker[1][1]->w(0.0001, 10),    ker[1][1]->dw(0.00001, 10));
 
   inum = list->inum;
   ilist = list->ilist;
@@ -154,10 +153,10 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
           // The missing factor of r is recovered by
           // (1) using delV . delX instead of delV . (delX/r) and
           // (2) using f[i][0] += delx * fpair instead of f[i][0] += (delx/r) * fpair
-          wfd = -25.066903536973515383e0 * wfd * wfd * ihsq * ihsq * ihsq * ih;
+          wfd = -25.066903536973515383e0 * wfd * wfd * ihsq * ihsq * ihsq * ih * sqrt(rsq);
         } else {
           // Lucy Kernel, 2d
-          wfd = -19.098593171027440292e0 * wfd * wfd * ihsq * ihsq * ihsq;
+          wfd = -19.098593171027440292e0 * wfd * wfd * ihsq * ihsq * ihsq * sqrt(rsq);
         }
 
         // compute pressure  of atom j with Tait EOS
@@ -176,10 +175,10 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
 
         fvisc = 2 * viscosity[itype][jtype] / (rho[i] * rho[j]);
 
-        fvisc *= imass * jmass * wfd;
+        fvisc *= imass * jmass * wfd / sqrt(rsq);
 
         // total pair force & thermal energy increment
-        fpair = -imass * jmass * (fi + fj) * wfd;
+        fpair = -imass * jmass * (fi + fj) * wfd / sqrt(rsq);
         deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
        // printf("testvar= %f, %f \n", delx, dely);
@@ -189,7 +188,7 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
         f[i][2] += delz * fpair + velz * fvisc;
 
         // and change in density
-        drho[i] += jmass * delVdotDelR * wfd;
+        drho[i] += jmass * delVdotDelR * wfd /sqrt(rsq);
 
         // change in thermal energy
         de[i] += deltaE;
