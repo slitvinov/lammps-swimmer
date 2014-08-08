@@ -12,6 +12,7 @@
  ------------------------------------------------------------------------- */
 
 #include "math.h"
+#include "string.h"
 #include "stdlib.h"
 #include "pair_sph_rhosum.h"
 #include "atom.h"
@@ -24,6 +25,8 @@
 #include "neighbor.h"
 #include "update.h"
 #include "domain.h"
+#include "sph_kernel_dispatch.h"
+#include "sph_kernel.h"
 
 using namespace LAMMPS_NS;
 
@@ -45,6 +48,7 @@ PairSPHRhoSum::~PairSPHRhoSum() {
   if (allocated) {
     memory->destroy(setflag);
     memory->destroy(cutsq);
+    memory->destroy(kernel_code);
 
     memory->destroy(cut);
   }
@@ -99,6 +103,13 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
       }
     }
     first = 0;
+  }
+  // decode kernels
+  SPHKernel* ker[atom->ntypes+1][atom->ntypes+1];
+  for (i = 1; i <= atom->ntypes; i++) {
+    for (j = 1; i <= atom->ntypes; i++) {
+      ker[i][j] = sph_kernel_decode(kernel_code[i][j], error);
+    }
   }
 
   inum = list->inum;
@@ -219,6 +230,8 @@ void PairSPHRhoSum::allocate() {
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
 
   memory->create(cut, n + 1, n + 1, "pair:cut");
+
+  memory->create(kernel_code, n + 1, n + 1, "pair:kernel_code");
 }
 
 /* ----------------------------------------------------------------------
@@ -237,7 +250,7 @@ void PairSPHRhoSum::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHRhoSum::coeff(int narg, char **arg) {
-  if (narg != 3)
+  if (narg != 4)
     error->all(FLERR,"Incorrect number of args for sph/rhosum coefficients");
   if (!allocated)
     allocate();
@@ -246,13 +259,20 @@ void PairSPHRhoSum::coeff(int narg, char **arg) {
   force->bounds(arg[0], atom->ntypes, ilo, ihi);
   force->bounds(arg[1], atom->ntypes, jlo, jhi);
 
-  double cut_one = force->numeric(FLERR,arg[2]);
+  int i_kernel_name = 2;
+  char *kernel_name_one;
+  int n_kernel_name = strlen(arg[i_kernel_name]) + 1;
+  kernel_name_one = new char[n_kernel_name];
+  strcpy(kernel_name_one, arg[i_kernel_name]);
+  double cut_one = force->numeric(FLERR,arg[3]);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
+      kernel_code[i][j] = 
+	sph_kernel_code(kernel_name_one, domain->dimension, error);
       setflag[i][j] = 1;
       count++;
     }
