@@ -24,7 +24,6 @@ PairStyle(sph/taitwater/morris,PairSPHTaitwaterMorris)
 #include "sph_kernel_dispatch.h"
 
 namespace LAMMPS_NS {
-class SPHKernel;
 class PairSPHTaitwaterMorris : public Pair {
  public:
   PairSPHTaitwaterMorris(class LAMMPS *);

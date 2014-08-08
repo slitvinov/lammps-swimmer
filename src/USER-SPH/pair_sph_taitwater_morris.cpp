@@ -12,7 +12,7 @@
  ------------------------------------------------------------------------- */
 
 #include "math.h"
-#include <string.h>
+#include "string.h"
 #include "stdlib.h"
 #include "pair_sph_taitwater_morris.h"
 #include "atom.h"
