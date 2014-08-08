@@ -19,8 +19,8 @@ namespace LAMMPS_NS {
   class SPHKernelLucy2D : public SPHKernel {
   public:
     SPHKernelLucy2D() {};
-    virtual double w  (double r);
-    virtual double dw (double r);
+    virtual double w  (double r, double cutoff);
+    virtual double dw (double r, double cutoff);
   };
 }
 

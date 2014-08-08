@@ -14,10 +14,10 @@
 #include "sph_kernel_lucy_2d.h"
 using namespace LAMMPS_NS;
 
-double SPHKernelLucy2D::w (double r) {
+double SPHKernelLucy2D::w (double r, double cutoff) {
   return 0;
 }
 
-double SPHKernelLucy2D::dw (double r) {
-  return 0;
+double SPHKernelLucy2D::dw (double r, double cutoff) {
+  return 42.0;
 }

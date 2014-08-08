@@ -21,6 +21,7 @@ PairStyle(sph/taitwater/morris,PairSPHTaitwaterMorris)
 #define LMP_PAIR_TAITWATER_MORRIS_H
 
 #include "pair.h"
+#include "sph_kernel_dispatch.h"
 
 namespace LAMMPS_NS {
 class SPHKernel;
@@ -39,7 +40,7 @@ class PairSPHTaitwaterMorris : public Pair {
   double **cut,**viscosity;
   int first;
 
-  SPHKernel  ***ker;
+  SPHKernelCodeType  **kernel_code;
   void allocate();
 };
 

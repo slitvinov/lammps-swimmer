@@ -23,6 +23,7 @@
 #include "error.h"
 #include "domain.h"
 #include "sph_kernel_dispatch.h"
+#include "sph_kernel.h"
 
 using namespace LAMMPS_NS;
 
@@ -46,7 +47,7 @@ PairSPHTaitwaterMorris::~PairSPHTaitwaterMorris() {
     memory->destroy(soundspeed);
     memory->destroy(B);
     memory->destroy(viscosity);
-    memory->destroy(ker);
+    memory->destroy(kernel_code);
   }
 }
 
@@ -75,7 +76,6 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
   int *type = atom->type;
   int nlocal = atom->nlocal;
   int newton_pair = force->newton_pair;
-
   // check consistency of pair coefficients
 
   if (first) {
@@ -94,6 +94,15 @@ void PairSPHTaitwaterMorris::compute(int eflag, int vflag) {
     }
     first = 0;
   }
+
+  // decode kernels
+  SPHKernel* ker[atom->ntypes+1][atom->ntypes+1];
+  for (i = 1; i <= atom->ntypes; i++) {
+    for (j = 1; i <= atom->ntypes; i++) {
+      ker[i][j] = sph_kernel_decode(kernel_code[i][j], error);
+    }
+  }
+  printf("kernel values: %e       %e\n",   ker[1][1]->w(0.0001, 10),    ker[1][1]->dw(0.00001, 10));
 
   inum = list->inum;
   ilist = list->ilist;
@@ -222,7 +231,7 @@ void PairSPHTaitwaterMorris::allocate() {
   memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
-  memory->create(ker, n + 1, n + 1, "pair:ker");
+  memory->create(kernel_code, n + 1, n + 1, "pair:kernel_code");
 }
 
 /* ----------------------------------------------------------------------
@@ -271,7 +280,8 @@ void PairSPHTaitwaterMorris::coeff(int narg, char **arg) {
       viscosity[i][j] = viscosity_one;
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
-      ker[i][j] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+      kernel_code[i][j] = 
+	sph_kernel_code(kernel_name_one, domain->dimension, error);
       setflag[i][j] = 1;
       count++;
     }
@@ -293,7 +303,7 @@ double PairSPHTaitwaterMorris::init_one(int i, int j) {
 
   cut[j][i] = cut[i][j];
   viscosity[j][i] = viscosity[i][j];
-  ker[j][i] = ker[i][j];
+  kernel_code[j][i] = kernel_code[i][j];
 
   return cut[i][j];
 }

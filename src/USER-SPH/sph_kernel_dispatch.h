@@ -11,13 +11,18 @@
  See the README file in the top-level LAMMPS directory.
  ------------------------------------------------------------------------- */
 
-#ifndef LMP_SPH_UTILS_H
-#define LMP_SPH_UTILS_H
+#ifndef LMP_SPH_DISPATCH_H
+#define LMP_SPH_DISPATCH_H
 
-class SPHKernel;
 namespace  LAMMPS_NS {
-  SPHKernel* sph_kernel_dispatch(char* kernel_name, int kernel_dimension,
-				 LAMMPS_NS::Error *error);
+  class SPHKernel;
+  enum SPHKernelCodeType { Lucy2D };
+
+  SPHKernelCodeType sph_kernel_code(char* kernel_name, int kernel_dimension,
+				    Error *error);
+
+  SPHKernel* sph_kernel_decode(SPHKernelCodeType kernel_code,
+			       Error *error);
 };
 
 #endif

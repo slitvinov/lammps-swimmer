@@ -18,8 +18,8 @@ namespace LAMMPS_NS {
   class SPHKernel {
   public:
     SPHKernel() {};
-    virtual double  w (double r) = 0;
-    virtual double dw (double r) = 0;
+    virtual double  w (double r, double cutoff) = 0;
+    virtual double dw (double r, double cutoff) = 0;
     ~SPHKernel() {};
   };
 }
