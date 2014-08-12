@@ -21,6 +21,7 @@ PairStyle(sph/heatconduction,PairSPHHeatConduction)
 #define LMP_PAIR_SPH_HEATCONDUCTION_H
 
 #include "pair.h"
+#include "sph_kernel.h"
 
 namespace LAMMPS_NS {
 
@@ -36,6 +37,8 @@ class PairSPHHeatConduction : public Pair {
 
  protected:
   double **cut, **alpha;
+
+  pSPHKernel  **ker;
   void allocate();
 };
 

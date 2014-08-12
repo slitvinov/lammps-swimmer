@@ -12,6 +12,7 @@
  ------------------------------------------------------------------------- */
 
 #include "math.h"
+#include "string.h"
 #include "stdlib.h"
 #include "pair_sph_heatconduction.h"
 #include "atom.h"
@@ -21,6 +22,7 @@
 #include "error.h"
 #include "neigh_list.h"
 #include "domain.h"
+#include "sph_kernel_dispatch.h"
 
 using namespace LAMMPS_NS;
 
@@ -39,6 +41,13 @@ PairSPHHeatConduction::~PairSPHHeatConduction() {
     memory->destroy(cutsq);
     memory->destroy(cut);
     memory->destroy(alpha);
+
+    int n = atom->ntypes;
+    for (int i=0; i<=n; ++i) {
+      for (int j=0; j<=n; ++j) 	delete ker[i][j];
+      delete[] ker[i];
+    }
+    delete[] ker;
   }
 }
 
@@ -49,7 +58,7 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double imass, jmass, h, ih, ihsq;
+  double imass, jmass, h;
   double rsq, wfd, D, deltaE;
 
   if (eflag || vflag)
@@ -98,23 +107,8 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
       jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
-        h = cut[itype][jtype];
-        ih = 1.0 / h;
-        ihsq = ih * ih;
-
         // kernel function
-        wfd = h - sqrt(rsq);
-        if (domain->dimension == 3) {
-          // Lucy Kernel, 3d
-          // Note that wfd, the derivative of the weight function with respect to r,
-          // is lacking a factor of r.
-          // The missing factor of r is recovered by
-          // deltaE, which is missing a factor of 1/r
-          wfd = -25.066903536973515383e0 * wfd * wfd * ihsq * ihsq * ihsq * ih;
-        } else {
-          // Lucy Kernel, 2d
-          wfd = -19.098593171027440292e0 * wfd * wfd * ihsq * ihsq * ihsq;
-        }
+        wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
         jmass = mass[jtype];
         D = alpha[itype][jtype]; // diffusion coefficient
@@ -149,6 +143,13 @@ void PairSPHHeatConduction::allocate() {
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(alpha, n + 1, n + 1, "pair:alpha");
+
+  ker = new pSPHKernel*[n+1];
+  for (int i=0; i<=n; ++i) {
+    ker[i] = new pSPHKernel[n+1];
+    for (int j=0; j<=n; ++j)
+      ker[i][j] = NULL;
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -166,7 +167,7 @@ void PairSPHHeatConduction::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHHeatConduction::coeff(int narg, char **arg) {
-  if (narg != 4)
+  if (narg != 5)
     error->all(FLERR,"Incorrect number of args for pair_style sph/heatconduction coefficients");
   if (!allocated)
     allocate();
@@ -175,14 +176,24 @@ void PairSPHHeatConduction::coeff(int narg, char **arg) {
   force->bounds(arg[0], atom->ntypes, ilo, ihi);
   force->bounds(arg[1], atom->ntypes, jlo, jhi);
 
-  double alpha_one = force->numeric(FLERR,arg[2]);
-  double cut_one   = force->numeric(FLERR,arg[3]);
+  int i_kernel_name = 2;
+  char *kernel_name_one;
+  int n_kernel_name = strlen(arg[i_kernel_name]) + 1;
+  kernel_name_one = new char[n_kernel_name];
+  strcpy(kernel_name_one, arg[i_kernel_name]);
+
+  double alpha_one = force->numeric(FLERR,arg[3]);
+  double cut_one   = force->numeric(FLERR,arg[4]);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
+
+      ker[i][j] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+      if (i!=j) ker[j][i] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+
       alpha[i][j] = alpha_one;
       setflag[i][j] = 1;
       count++;
