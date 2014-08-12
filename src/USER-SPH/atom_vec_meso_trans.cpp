@@ -32,11 +32,11 @@ AtomVecMesoTrans::AtomVecMesoTrans(LAMMPS *lmp) : AtomVec(lmp)
   mass_type = 1;
   forceclearflag = 1;
 
-  comm_x_only = 0; // we communicate not only x forward but also vest ...
+  comm_x_only = 0; // we communicate not only x forward but also fb ...
   comm_f_only = 0; // we also communicate de and drho in reverse direction
-  size_forward = 8; // 3 + rho + e + vest[3], that means we may only communicate 5 in hybrid
-  size_reverse = 5; // 3 + drho + de
-  size_border = 12; // 6 + rho + e + vest[3] + cv
+  size_forward = 8; // 3 + rho + e + fb[3], that means we may only communicate 5 in hybrid
+  size_reverse = 8; // 3 + drho + de + fb[3]
+  size_border = 12; // 6 + rho + e + fb[3] + cv
   size_velocity = 3;
   size_data_atom = 8;
   size_data_vel = 4;
@@ -45,7 +45,7 @@ AtomVecMesoTrans::AtomVecMesoTrans(LAMMPS *lmp) : AtomVec(lmp)
   atom->e_flag = 1;
   atom->rho_flag = 1;
   atom->cv_flag = 1;
-  atom->vest_flag = 1;
+  atom->fb_flag = 1;
 }
 
 /* ----------------------------------------------------------------------
@@ -74,7 +74,7 @@ void AtomVecMesoTrans::grow(int n)
   drho = memory->grow(atom->drho, nmax*comm->nthreads, "atom:drho");
   e = memory->grow(atom->e, nmax, "atom:e");
   de = memory->grow(atom->de, nmax*comm->nthreads, "atom:de");
-  vest = memory->grow(atom->vest, nmax, 3, "atom:vest");
+  fb = memory->grow(atom->fb, nmax, 3, "atom:fb");
   cv = memory->grow(atom->cv, nmax, "atom:cv");
 
   if (atom->nextra_grow)
@@ -98,7 +98,7 @@ void AtomVecMesoTrans::grow_reset() {
   drho = atom->drho;
   e = atom->e;
   de = atom->de;
-  vest = atom->vest;
+  fb = atom->fb;
   cv = atom->cv;
 }
 
@@ -122,9 +122,9 @@ void AtomVecMesoTrans::copy(int i, int j, int delflag) {
   e[j] = e[i];
   de[j] = de[i];
   cv[j] = cv[i];
-  vest[j][0] = vest[i][0];
-  vest[j][1] = vest[i][1];
-  vest[j][2] = vest[i][2];
+  fb[j][0] = fb[i][0];
+  fb[j][1] = fb[i][1];
+  fb[j][2] = fb[i][2];
 
   if (atom->nextra_grow)
     for (int iextra = 0; iextra < atom->nextra_grow; iextra++)
@@ -150,9 +150,9 @@ int AtomVecMesoTrans::pack_comm_hybrid(int n, int *list, double *buf) {
     j = list[i];
     buf[m++] = rho[j];
     buf[m++] = e[j];
-    buf[m++] = vest[j][0];
-    buf[m++] = vest[j][1];
-    buf[m++] = vest[j][2];
+    buf[m++] = fb[j][0];
+    buf[m++] = fb[j][1];
+    buf[m++] = fb[j][2];
   }
   return m;
 }
@@ -168,9 +168,9 @@ int AtomVecMesoTrans::unpack_comm_hybrid(int n, int first, double *buf) {
   for (i = first; i < last; i++) {
     rho[i] = buf[m++];
     e[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
   return m;
 }
@@ -186,9 +186,9 @@ int AtomVecMesoTrans::pack_border_hybrid(int n, int *list, double *buf) {
     j = list[i];
     buf[m++] = rho[j];
     buf[m++] = e[j];
-    buf[m++] = vest[j][0];
-    buf[m++] = vest[j][1];
-    buf[m++] = vest[j][2];
+    buf[m++] = fb[j][0];
+    buf[m++] = fb[j][1];
+    buf[m++] = fb[j][2];
   }
   return m;
 }
@@ -204,9 +204,9 @@ int AtomVecMesoTrans::unpack_border_hybrid(int n, int first, double *buf) {
   for (i = first; i < last; i++) {
     rho[i] = buf[m++];
     e[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
   return m;
 }
@@ -222,6 +222,9 @@ int AtomVecMesoTrans::pack_reverse_hybrid(int n, int first, double *buf) {
   for (i = first; i < last; i++) {
     buf[m++] = drho[i];
     buf[m++] = de[i];
+    buf[m++] = fb[i][0];
+    buf[m++] = fb[i][1];
+    buf[m++] = fb[i][2];
   }
   return m;
 }
@@ -237,6 +240,9 @@ int AtomVecMesoTrans::unpack_reverse_hybrid(int n, int *list, double *buf) {
     j = list[i];
     drho[j] += buf[m++];
     de[j] += buf[m++];
+    fb[j][0] += buf[m++];
+    fb[j][1] += buf[m++];
+    fb[j][2] += buf[m++];
   }
   return m;
 }
@@ -258,9 +264,9 @@ int AtomVecMesoTrans::pack_comm(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = x[j][2];
       buf[m++] = rho[j];
       buf[m++] = e[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   } else {
     if (domain->triclinic == 0) {
@@ -279,9 +285,9 @@ int AtomVecMesoTrans::pack_comm(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = x[j][2] + dz;
       buf[m++] = rho[j];
       buf[m++] = e[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   }
   return m;
@@ -307,9 +313,9 @@ int AtomVecMesoTrans::pack_comm_vel(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = v[j][2];
       buf[m++] = rho[j];
       buf[m++] = e[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   } else {
     if (domain->triclinic == 0) {
@@ -331,9 +337,9 @@ int AtomVecMesoTrans::pack_comm_vel(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = v[j][2];
       buf[m++] = rho[j];
       buf[m++] = e[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   }
   return m;
@@ -353,9 +359,9 @@ void AtomVecMesoTrans::unpack_comm(int n, int first, double *buf) {
     x[i][2] = buf[m++];
     rho[i] = buf[m++];
     e[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
 }
 
@@ -376,9 +382,9 @@ void AtomVecMesoTrans::unpack_comm_vel(int n, int first, double *buf) {
     v[i][2] = buf[m++];
     rho[i] = buf[m++];
     e[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
 }
 
@@ -396,6 +402,9 @@ int AtomVecMesoTrans::pack_reverse(int n, int first, double *buf) {
     buf[m++] = f[i][2];
     buf[m++] = drho[i];
     buf[m++] = de[i];
+    buf[m++] = fb[i][0];
+    buf[m++] = fb[i][1];
+    buf[m++] = fb[i][2];
   }
   return m;
 }
@@ -414,6 +423,9 @@ void AtomVecMesoTrans::unpack_reverse(int n, int *list, double *buf) {
     f[j][2] += buf[m++];
     drho[j] += buf[m++];
     de[j] += buf[m++];
+    fb[j][0] += buf[m++];
+    fb[j][1] += buf[m++];
+    fb[j][2] += buf[m++];
   }
 }
 
@@ -438,9 +450,9 @@ int AtomVecMesoTrans::pack_border(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = rho[j];
       buf[m++] = e[j];
       buf[m++] = cv[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   } else {
     if (domain->triclinic == 0) {
@@ -463,9 +475,9 @@ int AtomVecMesoTrans::pack_border(int n, int *list, double *buf, int pbc_flag,
       buf[m++] = rho[j];
       buf[m++] = e[j];
       buf[m++] = cv[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   }
 
@@ -500,9 +512,9 @@ int AtomVecMesoTrans::pack_border_vel(int n, int *list, double *buf, int pbc_fla
       buf[m++] = rho[j];
       buf[m++] = e[j];
       buf[m++] = cv[j];
-      buf[m++] = vest[j][0];
-      buf[m++] = vest[j][1];
-      buf[m++] = vest[j][2];
+      buf[m++] = fb[j][0];
+      buf[m++] = fb[j][1];
+      buf[m++] = fb[j][2];
     }
   } else {
     if (domain->triclinic == 0) {
@@ -529,9 +541,9 @@ int AtomVecMesoTrans::pack_border_vel(int n, int *list, double *buf, int pbc_fla
         buf[m++] = rho[j];
         buf[m++] = e[j];
         buf[m++] = cv[j];
-        buf[m++] = vest[j][0];
-        buf[m++] = vest[j][1];
-        buf[m++] = vest[j][2];
+        buf[m++] = fb[j][0];
+        buf[m++] = fb[j][1];
+        buf[m++] = fb[j][2];
       }
     } else {
       for (i = 0; i < n; i++) {
@@ -554,9 +566,9 @@ int AtomVecMesoTrans::pack_border_vel(int n, int *list, double *buf, int pbc_fla
         buf[m++] = rho[j];
         buf[m++] = e[j];
         buf[m++] = cv[j];
-        buf[m++] = vest[j][0];
-        buf[m++] = vest[j][1];
-        buf[m++] = vest[j][2];
+        buf[m++] = fb[j][0];
+        buf[m++] = fb[j][1];
+        buf[m++] = fb[j][2];
       }
     }
   }
@@ -588,9 +600,9 @@ void AtomVecMesoTrans::unpack_border(int n, int first, double *buf) {
     rho[i] = buf[m++];
     e[i] = buf[m++];
     cv[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
 
   if (atom->nextra_border)
@@ -622,9 +634,9 @@ void AtomVecMesoTrans::unpack_border_vel(int n, int first, double *buf) {
     rho[i] = buf[m++];
     e[i] = buf[m++];
     cv[i] = buf[m++];
-    vest[i][0] = buf[m++];
-    vest[i][1] = buf[m++];
-    vest[i][2] = buf[m++];
+    fb[i][0] = buf[m++];
+    fb[i][1] = buf[m++];
+    fb[i][2] = buf[m++];
   }
 
   if (atom->nextra_border)
@@ -654,9 +666,9 @@ int AtomVecMesoTrans::pack_exchange(int i, double *buf) {
   buf[m++] = rho[i];
   buf[m++] = e[i];
   buf[m++] = cv[i];
-  buf[m++] = vest[i][0];
-  buf[m++] = vest[i][1];
-  buf[m++] = vest[i][2];
+  buf[m++] = fb[i][0];
+  buf[m++] = fb[i][1];
+  buf[m++] = fb[i][2];
 
   if (atom->nextra_grow)
     for (int iextra = 0; iextra < atom->nextra_grow; iextra++)
@@ -688,9 +700,9 @@ int AtomVecMesoTrans::unpack_exchange(double *buf) {
   rho[nlocal] = buf[m++];
   e[nlocal] = buf[m++];
   cv[nlocal] = buf[m++];
-  vest[nlocal][0] = buf[m++];
-  vest[nlocal][1] = buf[m++];
-  vest[nlocal][2] = buf[m++];
+  fb[nlocal][0] = buf[m++];
+  fb[nlocal][1] = buf[m++];
+  fb[nlocal][2] = buf[m++];
 
   if (atom->nextra_grow)
     for (int iextra = 0; iextra < atom->nextra_grow; iextra++)
@@ -710,7 +722,7 @@ int AtomVecMesoTrans::size_restart() {
   int i;
 
   int nlocal = atom->nlocal;
-  int n = 17 * nlocal; // 11 + rho + e + cv + vest[3]
+  int n = 17 * nlocal; // 11 + rho + e + cv + fb[3]
 
   if (atom->nextra_restart)
     for (int iextra = 0; iextra < atom->nextra_restart; iextra++)
@@ -741,9 +753,9 @@ int AtomVecMesoTrans::pack_restart(int i, double *buf) {
   buf[m++] = rho[i];
   buf[m++] = e[i];
   buf[m++] = cv[i];
-  buf[m++] = vest[i][0];
-  buf[m++] = vest[i][1];
-  buf[m++] = vest[i][2];
+  buf[m++] = fb[i][0];
+  buf[m++] = fb[i][1];
+  buf[m++] = fb[i][2];
 
   if (atom->nextra_restart)
     for (int iextra = 0; iextra < atom->nextra_restart; iextra++)
@@ -779,9 +791,9 @@ int AtomVecMesoTrans::unpack_restart(double *buf) {
   rho[nlocal] = buf[m++];
   e[nlocal] = buf[m++];
   cv[nlocal] = buf[m++];
-  vest[nlocal][0] = buf[m++];
-  vest[nlocal][1] = buf[m++];
-  vest[nlocal][2] = buf[m++];
+  fb[nlocal][0] = buf[m++];
+  fb[nlocal][1] = buf[m++];
+  fb[nlocal][2] = buf[m++];
 
   double **extra = atom->extra;
   if (atom->nextra_store) {
@@ -818,9 +830,9 @@ void AtomVecMesoTrans::create_atom(int itype, double *coord) {
   rho[nlocal] = 0.0;
   e[nlocal] = 0.0;
   cv[nlocal] = 1.0;
-  vest[nlocal][0] = 0.0;
-  vest[nlocal][1] = 0.0;
-  vest[nlocal][2] = 0.0;
+  fb[nlocal][0] = 0.0;
+  fb[nlocal][1] = 0.0;
+  fb[nlocal][2] = 0.0;
   de[nlocal] = 0.0;
   drho[nlocal] = 0.0;
 
@@ -858,9 +870,9 @@ void AtomVecMesoTrans::data_atom(double *coord, imageint imagetmp, char **values
   v[nlocal][1] = 0.0;
   v[nlocal][2] = 0.0;
 
-  vest[nlocal][0] = 0.0;
-  vest[nlocal][1] = 0.0;
-  vest[nlocal][2] = 0.0;
+  fb[nlocal][0] = 0.0;
+  fb[nlocal][1] = 0.0;
+  fb[nlocal][2] = 0.0;
 
   de[nlocal] = 0.0;
   drho[nlocal] = 0.0;
@@ -1034,8 +1046,8 @@ bigint AtomVecMesoTrans::memory_usage() {
     bytes += memory->usage(de, nmax*comm->nthreads);
   if (atom->memcheck("cv"))
     bytes += memory->usage(cv, nmax);
-  if (atom->memcheck("vest"))
-    bytes += memory->usage(vest, nmax);
+  if (atom->memcheck("fb"))
+    bytes += memory->usage(fb, nmax);
 
   return bytes;
 }

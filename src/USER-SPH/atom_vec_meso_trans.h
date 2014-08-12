@@ -70,7 +70,8 @@ class AtomVecMesoTrans : public AtomVec {
   imageint *image;
   double **x,**v,**f;
   double *rho, *drho, *e, *de, *cv;
-  double **vest; // estimated velocity during force computation
+  double **fb; // background pressure force for transport velocity SPH
+	       // formulation (see doi:10.1016/j.jcp.2013.01.043)
 };
 
 }
