@@ -71,21 +71,7 @@ void FixMesoTrans::init() {
 
 void FixMesoTrans::setup_pre_force(int vflag)
 {
-  // set vest equal to v 
-  double **v = atom->v;
-  double **vest = atom->vest;
-  int *mask = atom->mask;
-  int nlocal = atom->nlocal;
-  if (igroup == atom->firstgroup)
-    nlocal = atom->nfirst;
-
-  for (int i = 0; i < nlocal; i++) {
-    if (mask[i] & groupbit) {
-      vest[i][0] = v[i][0];
-      vest[i][1] = v[i][1];
-      vest[i][2] = v[i][2];
-    }
-  }
+  // TODO: do nothing for fix_meso_trans
 }
 
 /* ----------------------------------------------------------------------
@@ -98,11 +84,11 @@ void FixMesoTrans::initial_integrate(int vflag) {
   double **x = atom->x;
   double **v = atom->v;
   double **f = atom->f;
-  double **vest = atom->vest;
   double *rho = atom->rho;
   double *drho = atom->drho;
   double *e = atom->e;
   double *de = atom->de;
+  double **fb = atom->fb;
   double *mass = atom->mass;
   double *rmass = atom->rmass;
   int rmass_flag = atom->rmass_flag;
@@ -127,18 +113,13 @@ void FixMesoTrans::initial_integrate(int vflag) {
       e[i] += dtf * de[i]; // half-step update of particle internal energy
       rho[i] += dtf * drho[i]; // ... and density
 
-      // extrapolate velocity for use with velocity-dependent potentials, e.g. SPH
-      vest[i][0] = v[i][0] + 2.0 * dtfm * f[i][0];
-      vest[i][1] = v[i][1] + 2.0 * dtfm * f[i][1];
-      vest[i][2] = v[i][2] + 2.0 * dtfm * f[i][2];
-
       v[i][0] += dtfm * f[i][0];
       v[i][1] += dtfm * f[i][1];
       v[i][2] += dtfm * f[i][2];
 
-      x[i][0] += dtv * v[i][0];
-      x[i][1] += dtv * v[i][1];
-      x[i][2] += dtv * v[i][2];
+      x[i][0] += dtv * v[i][0] + dtv * dtfm * fb[i][0];
+      x[i][1] += dtv * v[i][1] + dtv * dtfm * fb[i][1];
+      x[i][2] += dtv * v[i][2] + dtv * dtfm * fb[i][2];
     }
   }
 }
