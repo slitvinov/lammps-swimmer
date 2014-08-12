@@ -93,6 +93,7 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
 
   rho = drho = e = de = cv = NULL;
   vest = NULL;
+  fb   = NULL;
 
   bond_per_atom =  extra_bond_per_atom = 0;
   num_bond = NULL;
@@ -146,7 +147,7 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
   spin_flag = eradius_flag = ervel_flag = erforce_flag = ervelforce_flag = 0;
   cs_flag = csforce_flag = vforce_flag = etag_flag = 0;
 
-  rho_flag = e_flag = cv_flag = vest_flag = 0;
+  rho_flag = e_flag = cv_flag = vest_flag = fb_flag = 0;
 
   // Peridynamic scale factor
 
@@ -244,6 +245,7 @@ Atom::~Atom()
   memory->destroy(de);
   memory->destroy(cv);
   memory->destroy(vest);
+  memory->destroy(fb);
 
   memory->destroy(nspecial);
   memory->destroy(special);
@@ -355,7 +357,7 @@ void Atom::create_avec(const char *style, int narg, char **arg, char *suffix)
   spin_flag = eradius_flag = ervel_flag = erforce_flag = ervelforce_flag = 0;
   cs_flag = csforce_flag = vforce_flag = etag_flag = 0;
 
-  rho_flag = e_flag = cv_flag = vest_flag = 0;
+  rho_flag = e_flag = cv_flag = vest_flag = fb_flag = 0;
 
   // create instance of AtomVec
   // use grow() to initialize atom-based arrays to length 1
@@ -1941,6 +1943,7 @@ void *Atom::extract(char *name)
   if (strcmp(name,"de") == 0) return (void *) de;
   if (strcmp(name,"cv") == 0) return (void *) cv;
   if (strcmp(name,"vest") == 0) return (void *) vest;
+  if (strcmp(name,"fb") == 0) return (void *) fb;
 
   return NULL;
 }
