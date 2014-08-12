@@ -21,9 +21,9 @@ PairStyle(sph/rhosum,PairSPHRhoSum)
 #define LMP_PAIR_SPH_RHOSUM_H
 
 #include "pair.h"
+#include "sph_kernel.h"
 
 namespace LAMMPS_NS {
-
 class PairSPHRhoSum : public Pair {
  public:
   PairSPHRhoSum(class LAMMPS *);
@@ -40,6 +40,7 @@ class PairSPHRhoSum : public Pair {
  protected:
   double **cut;
   int nstep, first;
+  pSPHKernel  **ker;
 
   void allocate();
 };
