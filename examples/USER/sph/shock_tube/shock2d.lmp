@@ -19,8 +19,8 @@ set                type 1 meso_rho 1.0
 set                type 2 meso_rho 0.25
 
 pair_style         hybrid/overlay sph/rhosum 1 sph/idealgas
-pair_coeff         * * sph/rhosum 4.0
-pair_coeff         * * sph/idealgas 0.75 4.0
+pair_coeff         * * sph/rhosum   quadric 4.0
+pair_coeff         * * sph/idealgas lucy 0.75 4.0
 
 compute            rhoatom all meso_rho/atom
 compute            ieatom all meso_e/atom
