@@ -24,7 +24,7 @@ set             group all meso_rho 10.0 # mesoscopic density is also needed for 
 
 pair_style      sph/heatconduction
 #               i j diffusion coeff. cutoff
-pair_coeff      1 1 1.0e-4           2.0e-2
+pair_coeff      1 1 lucy 1.0e-4           2.0e-2
 neighbor	0.2e-2 bin
 neigh_modify	every 20 delay 0 check no
 
