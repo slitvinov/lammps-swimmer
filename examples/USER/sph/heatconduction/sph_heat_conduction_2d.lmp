@@ -24,7 +24,7 @@ set             group all meso_rho 0.1 # mesoscopic density is also needed for t
 
 pair_style      sph/heatconduction
 #               i j diffusion coeff. cutoff
-pair_coeff      1 1 1.0e-4           2.0e-2
+pair_coeff      1 1 lucy 1.0e-4           2.0e-2
 
 compute         ie_atom all meso_e/atom
 compute         ie all reduce sum c_ie_atom
