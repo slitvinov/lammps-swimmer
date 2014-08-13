@@ -1,0 +1,76 @@
+log                ${dname}/log.lammps
+echo               both
+variable           ndim equal 2
+dimension          ${ndim}
+units              si
+atom_style         meso/trans
+include            vars.lmp
+# periodic boundaries to have a correct density on the wall
+# TODO: make density fixed for the choosen particles
+boundary          p p p
+# create simulation box
+if ${ndim}==2 then &
+"variable           pLz    equal  ${dx}" &
+"variable           nLz    equal  0" &
+"region             box block 0.0 ${Lx}  0.0 ${Ly} ${nLz} ${pLz} units box" &
+else &
+"region             box block 0.0 ${Lx}  0.0 ${Ly} 0 ${Lz} units box"
+
+# create box with two types of particles (flow and wall)
+create_box         1 box
+
+# create gas particles
+if ${ndim}==3 then &
+"lattice            sc ${dx}" &
+else &
+"lattice            sq ${dx}"
+create_atoms       ${g_type} region box
+
+# set mass of the particles
+set                group all meso_rho ${sph_rho}
+mass               * ${sph_mass}
+
+compute            rho_peratom all meso_rho/atom
+
+# do full time integration for all particles
+fix                integrate_fix_full all meso/trans
+
+dump               dump_id all custom ${Nfreq} ${dname}/dump*.dat id type x y z vx vy vz c_rho_peratom
+dump_modify        dump_id first yes sort id pad 8
+
+variable           sph_mu  equal ${sph_eta}/${sph_rho}
+include            settimestep.lmp
+
+comm_modify        vel yes
+set                group all meso_rho ${sph_rho}
+
+variable           vx atom -cos(2*PI*x/${Lx})*sin(2*PI*y/${Ly})
+variable           vy atom sin(2*PI*x/${Lx})*cos(2*PI*y/${Ly})
+velocity           all set v_vx v_vy 0 units box
+
+
+pair_style         hybrid/overlay sph/rhosum 1  sph/adami
+pair_coeff	   * * sph/adami  quintic  ${sph_rho} ${sph_c} ${sph_eta} ${pb} ${h}
+pair_coeff         * * sph/rhosum quintic ${h}
+
+neighbor           0 bin
+neigh_modify       delay 0 every 1
+
+dump               dump_dcd all dcd ${Nfreq} ${dname}/data.dcd
+dump_modify        dump_dcd sort id
+
+write_restart      ${dname}/droplet.restart
+
+set                 type ${g_type} meso_rho ${sph_rho}
+
+variable            time equal step*dt
+thermo_style        custom step v_time
+thermo              100
+
+variable           vabs     atom sqrt(vx^2+vy^2+vz^2)
+compute            vmax    all reduce max v_vabs
+fix                 extra all print 10 "$(time) $(vcm(all,x)) $(vcm(all,y)) $(vcm(all,z)) $(ke(all)) $(c_vmax)" file ${dname}/momentum.dat screen no
+
+timestep           ${dt}
+if "${ndim}==2" then "fix e2d all enforce2d"
+run               3000
