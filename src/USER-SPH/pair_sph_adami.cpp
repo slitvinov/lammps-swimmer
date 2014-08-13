@@ -61,7 +61,7 @@ PairSPHAdami::~PairSPHAdami() {
 
 void PairSPHAdami::compute(int eflag, int vflag) {
   int i, j, ii, jj, inum, jnum, itype, jtype;
-  double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
+  double xtmp, ytmp, ztmp, delx, dely, delz;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
   double vxtmp, vytmp, vztmp, imass, jmass, fvisc, velx, vely, velz;
@@ -123,10 +123,10 @@ void PairSPHAdami::compute(int eflag, int vflag) {
 
     imass = mass[itype];
 
-    // compute pressure of atom i with Tait EOS
+    // compute pressure of atom i
     double pi  = B[itype] * (rho[i] / rho0[itype] - 1.0);
-    double fi  = pi/(rho[i] * rho[i]);
-    double fib = pb[itype]/(rho[i] * rho[i]);
+    double Vi  = imass/rho[i];
+    double Vi2 = Vi * Vi;
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -141,11 +141,13 @@ void PairSPHAdami::compute(int eflag, int vflag) {
 
       if (rsq < cutsq[itype][jtype]) {
 	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
+	double Vj  = jmass/rho[j];
+	double Vj2 = Vj * Vj;
 
-        // compute pressure  of atom j with Tait EOS
+        // compute pressure
 	double pj  = B[jtype] * (rho[j] / rho0[jtype] - 1.0);
-	double fj  = pj/(rho[j] * rho[j]);
-	double fjb = pb[jtype]/(rho[j] * rho[j]);
+	double pij_wave = (rho[j]*pi + rho[i]*pj)/(rho[i] + rho[j]);
+	double pij_b    = pb[jtype];
 
         velx=vxtmp - v[j][0];
         vely=vytmp - v[j][1];
@@ -161,8 +163,8 @@ void PairSPHAdami::compute(int eflag, int vflag) {
         fvisc *= imass * jmass * wfd;
 
         // total pair force & thermal energy increment
-        fpair = -imass * jmass * (fi + fj) * wfd;
-	double fpair_b = -imass * jmass * (fib + fjb) * wfd;
+        double fpair =   - (Vi2 + Vj2) * pij_wave * wfd;
+	double fpair_b = - (Vi2 + Vj2) * pij_b    * wfd;
 
         deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
