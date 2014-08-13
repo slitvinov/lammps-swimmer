@@ -240,7 +240,7 @@ void PairSPHAdami::allocate() {
 void PairSPHAdami::settings(int narg, char **arg) {
   if (narg != 0)
     error->all(FLERR,
-        "Illegal number of setting arguments for pair_style sph/taitwater/morris");
+        "Illegal number of setting arguments for pair_style sph/adami");
 }
 
 /* ----------------------------------------------------------------------
@@ -250,7 +250,7 @@ void PairSPHAdami::settings(int narg, char **arg) {
 void PairSPHAdami::coeff(int narg, char **arg) {
   if (narg != 8)
     error->all(FLERR,
-        "Incorrect args for pair_style sph/taitwater/morris coefficients");
+        "Incorrect args for pair_style sph/adami coefficients");
   if (!allocated)
     allocate();
 
@@ -302,7 +302,7 @@ void PairSPHAdami::coeff(int narg, char **arg) {
 double PairSPHAdami::init_one(int i, int j) {
 
   if (setflag[i][j] == 0) {
-    error->all(FLERR,"Not all pair sph/taitwater/morris coeffs are not set");
+    error->all(FLERR,"Not all pair sph/adami coeffs are not set");
   }
 
   cut[j][i] = cut[i][j];
