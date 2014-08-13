@@ -46,6 +46,7 @@ PairSPHAdami::~PairSPHAdami() {
     memory->destroy(soundspeed);
     memory->destroy(B);
     memory->destroy(viscosity);
+    memory->destroy(pb);
 
     int n = atom->ntypes;
     for (int i=0; i<=n; ++i) {
@@ -63,8 +64,8 @@ void PairSPHAdami::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double vxtmp, vytmp, vztmp, imass, jmass, fi, fj, fvisc, velx, vely, velz;
-  double rsq, tmp, wfd, delVdotDelR, deltaE;
+  double vxtmp, vytmp, vztmp, imass, jmass, fvisc, velx, vely, velz;
+  double rsq, wfd, delVdotDelR, deltaE;
 
   if (eflag || vflag)
     ev_setup(eflag, vflag);
@@ -74,6 +75,7 @@ void PairSPHAdami::compute(int eflag, int vflag) {
   double **v = atom->v;
   double **x = atom->x;
   double **f = atom->f;
+  double **fb = atom->fb;
   double *rho = atom->rho;
   double *mass = atom->mass;
   double *de = atom->de;
@@ -122,9 +124,9 @@ void PairSPHAdami::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     // compute pressure of atom i with Tait EOS
-    tmp = rho[i] / rho0[itype];
-    fi = tmp * tmp * tmp;
-    fi = B[itype] * (fi * fi * tmp - 1.0) / (rho[i] * rho[i]);
+    double pi  = B[itype] * (rho[i] / rho0[itype] - 1.0);
+    double fi  = pi/(rho[i] * rho[i]);
+    double fib = pb[itype]/(rho[i] * rho[i]);
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -141,9 +143,9 @@ void PairSPHAdami::compute(int eflag, int vflag) {
 	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
         // compute pressure  of atom j with Tait EOS
-        tmp = rho[j] / rho0[jtype];
-        fj = tmp * tmp * tmp;
-        fj = B[jtype] * (fj * fj * tmp - 1.0) / (rho[j] * rho[j]);
+	double pj  = B[jtype] * (rho[j] / rho0[jtype] - 1.0);
+	double fj  = pj/(rho[j] * rho[j]);
+	double fjb = pb[jtype]/(rho[j] * rho[j]);
 
         velx=vxtmp - v[j][0];
         vely=vytmp - v[j][1];
@@ -160,6 +162,8 @@ void PairSPHAdami::compute(int eflag, int vflag) {
 
         // total pair force & thermal energy increment
         fpair = -imass * jmass * (fi + fj) * wfd;
+	double fpair_b = -imass * jmass * (fib + fjb) * wfd;
+
         deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
        // printf("testvar= %f, %f \n", delx, dely);
@@ -167,6 +171,11 @@ void PairSPHAdami::compute(int eflag, int vflag) {
         f[i][0] += delx * fpair + velx * fvisc;
         f[i][1] += dely * fpair + vely * fvisc;
         f[i][2] += delz * fpair + velz * fvisc;
+
+	// change in background pressure
+        fb[i][0] += delx * fpair_b;
+        fb[i][1] += dely * fpair_b;
+        fb[i][2] += delz * fpair_b;
 
         // and change in density
         drho[i] += jmass * delVdotDelR * wfd;
@@ -178,6 +187,11 @@ void PairSPHAdami::compute(int eflag, int vflag) {
           f[j][0] -= delx * fpair + velx * fvisc;
           f[j][1] -= dely * fpair + vely * fvisc;
           f[j][2] -= delz * fpair + velz * fvisc;
+
+	  fb[j][0] -= delx * fpair_b;
+	  fb[j][1] -= dely * fpair_b;
+	  fb[j][2] -= delz * fpair_b;
+
           de[j] += deltaE;
           drho[j] += imass * delVdotDelR * wfd;
         }
@@ -211,6 +225,7 @@ void PairSPHAdami::allocate() {
   memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
+  memory->create(pb, n + 1, "pair:pb");
 
   ker = new pSPHKernel*[n+1];
   for (int i=0; i<=n; ++i) {
@@ -235,7 +250,7 @@ void PairSPHAdami::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHAdami::coeff(int narg, char **arg) {
-  if (narg != 7)
+  if (narg != 8)
     error->all(FLERR,
         "Incorrect args for pair_style sph/taitwater/morris coefficients");
   if (!allocated)
@@ -254,14 +269,17 @@ void PairSPHAdami::coeff(int narg, char **arg) {
   double rho0_one = force->numeric(FLERR,arg[3]);
   double soundspeed_one = force->numeric(FLERR,arg[4]);
   double viscosity_one = force->numeric(FLERR,arg[5]);
-  double cut_one = force->numeric(FLERR,arg[6]);
-  double B_one = soundspeed_one * soundspeed_one * rho0_one / 7.0;
+  double pb_one = force->numeric(FLERR,arg[6]);
+  double cut_one = force->numeric(FLERR,arg[7]);
+  double B_one = soundspeed_one * soundspeed_one * rho0_one ;
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
     rho0[i] = rho0_one;
     soundspeed[i] = soundspeed_one;
     B[i] = B_one;
+    pb[i] = pb_one;
+
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       viscosity[i][j] = viscosity_one;
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);

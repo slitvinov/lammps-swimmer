@@ -38,6 +38,7 @@ class PairSPHAdami : public Pair {
  protected:
   double *rho0, *soundspeed, *B;
   double **cut,**viscosity;
+  double *pb;
   int first;
 
   pSPHKernel  **ker;
