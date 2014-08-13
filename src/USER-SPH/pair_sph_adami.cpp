@@ -156,11 +156,7 @@ void PairSPHAdami::compute(int eflag, int vflag) {
         // dot product of velocity delta and distance vector
         delVdotDelR = delx * velx + dely * vely + delz * velz;
 
-        // Morris Viscosity (Morris, 1996)
-
-        fvisc = 2 * viscosity[itype][jtype] / (rho[i] * rho[j]);
-
-        fvisc *= imass * jmass * wfd;
+        fvisc = (Vi2 + Vj2) * viscosity[itype][jtype] * wfd;
 
         // total pair force & thermal energy increment
         double fpair =   - (Vi2 + Vj2) * pij_wave * wfd;
