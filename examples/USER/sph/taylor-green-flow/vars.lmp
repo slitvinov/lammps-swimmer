@@ -18,11 +18,12 @@ variable          sph_rho equal 1.0
 variable          sph_c equal 10.0
 
 # viscosity of droplet 
-variable          sph_eta equal 1e-1
+variable          sph_eta equal 1e-2
 
+#variable          pb equal ${sph_c}^2*${sph_rho}
 variable          pb equal ${sph_c}^2*${sph_rho}
 
-variable          h equal 3*${dx}
+variable          h equal 3.0*${dx}
 variable          Nfreq equal 1000
 variable          Nfreqimage equal 1000
 

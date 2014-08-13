@@ -47,8 +47,8 @@ comm_modify        vel yes
 set                group all meso_rho ${sph_rho}
 
 pair_style         hybrid/overlay sph/rhosum 1  sph/adami
-pair_coeff	   * * sph/adami  lucy  ${sph_rho} ${sph_c} ${sph_eta} ${pb} ${h}
-pair_coeff         * * sph/rhosum   quadric ${h}
+pair_coeff	   * * sph/adami  quintic  ${sph_rho} ${sph_c} ${sph_eta} ${pb} ${h}
+pair_coeff         * * sph/rhosum quintic ${h}
 
 
 neighbor           0 bin

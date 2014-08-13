@@ -73,4 +73,4 @@ fix                 extra all print 10 "$(time) $(vcm(all,x)) $(vcm(all,y)) $(vc
 
 timestep           ${dt}
 if "${ndim}==2" then "fix e2d all enforce2d"
-run               3000
+run               30000
