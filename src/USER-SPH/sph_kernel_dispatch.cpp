@@ -5,6 +5,8 @@
 #include "sph_kernel_lucy_3d.h"
 #include "sph_kernel_quadric_2d.h"
 #include "sph_kernel_quadric_3d.h"
+#include "sph_kernel_quintic_2d.h"
+#include "sph_kernel_quintic_3d.h"
 
 namespace LAMMPS_NS {
   SPHKernel* sph_kernel_dispatch(char* kernel_name, int kernel_dimension,
@@ -20,6 +22,12 @@ namespace LAMMPS_NS {
     }
     else if ( (strcmp(kernel_name, "quadric")==0) && (kernel_dimension==3) ) {
       return new SPHKernelQuadric3D();
+    }
+    else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==2) ) {
+      return new SPHKernelQuintic2D();
+    }
+    else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==3) ) {
+      return new SPHKernelQuintic3D();
     }
     else {
       char str[128];
