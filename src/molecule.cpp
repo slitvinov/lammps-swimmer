@@ -62,6 +62,27 @@ Molecule::Molecule(LAMMPS *lmp, char *idarg, char *file) : Pointers(lmp)
   if (me == 0) open(file);
   read(1);
   if (me == 0) fclose(fp);
+
+  // stats
+  
+  if (me == 0) {
+    if (screen)
+      fprintf(screen,"Read molecule %s:\n"
+              "  %d atoms with %d types\n  %d bonds with %d types\n"
+              "  %d angles with %d types\n  %d dihedrals with %d types\n"
+              "  %d impropers with %d types\n",
+              id,natoms,ntypes,
+              nbonds,nbondtypes,nangles,nangletypes,
+              ndihedrals,ndihedraltypes,nimpropers,nimpropertypes);
+    if (logfile)
+      fprintf(logfile,"Read molecule %s:\n"
+              "  %d atoms with %d types\n  %d bonds with %d types\n"
+              "  %d angles with %d types\n  %d dihedrals with %d types\n"
+              "  %d impropers with %d types\n",
+              id,natoms,ntypes,
+              nbonds,nbondtypes,nangles,nangletypes,
+              ndihedrals,ndihedraltypes,nimpropers,nimpropertypes);
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -718,21 +739,21 @@ void Molecule::dihedrals(int flag, char *line)
 	dihedral_atom1[m][num_dihedral[m]] = atom1;
 	dihedral_atom2[m][num_dihedral[m]] = atom2;
 	dihedral_atom3[m][num_dihedral[m]] = atom3;
-        dihedral_atom4[m][num_dihedral[m]] = atom4;
+	dihedral_atom4[m][num_dihedral[m]] = atom4;
 	num_dihedral[m]++;
 	m = atom3-1;
 	dihedral_type[m][num_dihedral[m]] = itype;
 	dihedral_atom1[m][num_dihedral[m]] = atom1;
 	dihedral_atom2[m][num_dihedral[m]] = atom2;
 	dihedral_atom3[m][num_dihedral[m]] = atom3;
-        dihedral_atom4[m][num_dihedral[m]] = atom4;
+	dihedral_atom4[m][num_dihedral[m]] = atom4;
 	num_dihedral[m]++;
 	m = atom4-1;
 	dihedral_type[m][num_dihedral[m]] = itype;
 	dihedral_atom1[m][num_dihedral[m]] = atom1;
 	dihedral_atom2[m][num_dihedral[m]] = atom2;
 	dihedral_atom3[m][num_dihedral[m]] = atom3;
-        dihedral_atom4[m][num_dihedral[m]] = atom4;
+	dihedral_atom4[m][num_dihedral[m]] = atom4;
 	num_dihedral[m]++;
       }
     } else {
@@ -803,21 +824,21 @@ void Molecule::impropers(int flag, char *line)
 	improper_atom1[m][num_improper[m]] = atom1;
 	improper_atom2[m][num_improper[m]] = atom2;
 	improper_atom3[m][num_improper[m]] = atom3;
-        improper_atom4[m][num_improper[m]] = atom4;
+	improper_atom4[m][num_improper[m]] = atom4;
 	num_improper[m]++;
 	m = atom3-1;
 	improper_type[m][num_improper[m]] = itype;
 	improper_atom1[m][num_improper[m]] = atom1;
 	improper_atom2[m][num_improper[m]] = atom2;
 	improper_atom3[m][num_improper[m]] = atom3;
-        improper_atom4[m][num_improper[m]] = atom4;
+	improper_atom4[m][num_improper[m]] = atom4;
 	num_improper[m]++;
 	m = atom4-1;
 	improper_type[m][num_improper[m]] = itype;
 	improper_atom1[m][num_improper[m]] = atom1;
 	improper_atom2[m][num_improper[m]] = atom2;
 	improper_atom3[m][num_improper[m]] = atom3;
-        improper_atom4[m][num_improper[m]] = atom4;
+	improper_atom4[m][num_improper[m]] = atom4;
 	num_improper[m]++;
       }
     } else {

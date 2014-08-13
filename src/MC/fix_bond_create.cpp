@@ -305,7 +305,7 @@ void FixBondCreate::setup(int vflag)
   // if newton_bond is set, need to sum bondcount
 
   commflag = 1;
-  if (newton_bond) comm->reverse_comm_fix(this);
+  if (newton_bond) comm->reverse_comm_fix(this,1);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -336,7 +336,7 @@ void FixBondCreate::post_integrate()
   // forward comm of bondcount, so ghosts have it
 
   commflag = 1;
-  comm->forward_comm_fix(this);
+  comm->forward_comm_fix(this,1);
 
   // resize bond partner list and initialize it
   // probability array overlays distsq array
@@ -448,7 +448,7 @@ void FixBondCreate::post_integrate()
   }
 
   commflag = 2;
-  comm->forward_comm_fix(this);
+  comm->forward_comm_fix(this,2);
 
   // create bonds for atoms I own
   // only if both atoms list each other as winning bond partner
@@ -545,7 +545,7 @@ void FixBondCreate::post_integrate()
   // 1-2 neighs already reflect created bonds
 
   commflag = 3;
-  comm->forward_comm_variable_fix(this);
+  comm->forward_comm_fix(this);
 
   // create list of broken bonds that influence my owned atoms
   //   even if between owned-ghost or ghost-ghost atoms
@@ -1211,8 +1211,8 @@ void FixBondCreate::post_integrate_respa(int ilevel, int iloop)
 
 /* ---------------------------------------------------------------------- */
 
-int FixBondCreate::pack_comm(int n, int *list, double *buf,
-                             int pbc_flag, int *pbc)
+int FixBondCreate::pack_forward_comm(int n, int *list, double *buf,
+                                     int pbc_flag, int *pbc)
 {
   int i,j,k,m,ns;
 
@@ -1223,7 +1223,7 @@ int FixBondCreate::pack_comm(int n, int *list, double *buf,
       j = list[i];
       buf[m++] = ubuf(bondcount[j]).d;
     }
-    return 1;
+    return m;
   }
 
   if (commflag == 2) {
@@ -1232,7 +1232,7 @@ int FixBondCreate::pack_comm(int n, int *list, double *buf,
       buf[m++] = ubuf(partner[j]).d;
       buf[m++] = probability[j];
     }
-    return 2;
+    return m;
   }
 
   int **nspecial = atom->nspecial;
@@ -1252,7 +1252,7 @@ int FixBondCreate::pack_comm(int n, int *list, double *buf,
 
 /* ---------------------------------------------------------------------- */
 
-void FixBondCreate::unpack_comm(int n, int first, double *buf)
+void FixBondCreate::unpack_forward_comm(int n, int first, double *buf)
 {
   int i,j,m,ns,last;
 
@@ -1270,7 +1270,6 @@ void FixBondCreate::unpack_comm(int n, int first, double *buf)
     }
 
   } else {
-
     int **nspecial = atom->nspecial;
     tagint **special = atom->special;
 
@@ -1298,14 +1297,14 @@ int FixBondCreate::pack_reverse_comm(int n, int first, double *buf)
   if (commflag == 1) {
     for (i = first; i < last; i++)
       buf[m++] = ubuf(bondcount[i]).d;
-    return 1;
+    return m;
   }
 
   for (i = first; i < last; i++) {
     buf[m++] = ubuf(partner[i]).d;
     buf[m++] = distsq[i];
   }
-  return 2;
+  return m;
 }
 
 /* ---------------------------------------------------------------------- */

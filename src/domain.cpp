@@ -301,34 +301,31 @@ void Domain::set_local_box()
     double *zsplit = comm->zsplit;
 
     sublo[0] = boxlo[0] + xprd*xsplit[myloc[0]];
-    if (myloc[0] < procgrid[0]-1)
-      subhi[0] = boxlo[0] + xprd*xsplit[myloc[0]+1];
+    if (myloc[0] < procgrid[0]-1) subhi[0] = boxlo[0] + xprd*xsplit[myloc[0]+1];
     else subhi[0] = boxhi[0];
 
     sublo[1] = boxlo[1] + yprd*ysplit[myloc[1]];
-    if (myloc[1] < procgrid[1]-1)
-      subhi[1] = boxlo[1] + yprd*ysplit[myloc[1]+1];
+    if (myloc[1] < procgrid[1]-1) subhi[1] = boxlo[1] + yprd*ysplit[myloc[1]+1];
     else subhi[1] = boxhi[1];
 
     sublo[2] = boxlo[2] + zprd*zsplit[myloc[2]];
-    if (myloc[2] < procgrid[2]-1)
-      subhi[2] = boxlo[2] + zprd*zsplit[myloc[2]+1];
+    if (myloc[2] < procgrid[2]-1) subhi[2] = boxlo[2] + zprd*zsplit[myloc[2]+1];
     else subhi[2] = boxhi[2];
 
   } else {
     double (*mysplit)[2] = comm->mysplit;
 
     sublo[0] = boxlo[0] + xprd*mysplit[0][0];
-    subhi[0] = boxlo[0] + xprd*mysplit[0][1];
-    if (mysplit[0][1] == 1.0) subhi[0] = boxhi[0];
+    if (mysplit[0][1] < 1.0) subhi[0] = boxlo[0] + xprd*mysplit[0][1];
+    else subhi[0] = boxhi[0];
 
     sublo[1] = boxlo[1] + yprd*mysplit[1][0];
-    subhi[1] = boxlo[1] + yprd*mysplit[1][1];
-    if (mysplit[1][1] == 1.0) subhi[1] = boxhi[1];
+    if (mysplit[1][1] < 1.0) subhi[1] = boxlo[1] + yprd*mysplit[1][1];
+    else subhi[1] = boxhi[1];
 
     sublo[2] = boxlo[2] + zprd*mysplit[2][0];
-    subhi[2] = boxlo[2] + zprd*mysplit[2][1];
-    if (mysplit[2][1] == 1.0) subhi[2] = boxhi[2];
+    if (mysplit[2][1] < 1.0) subhi[2] = boxlo[2] + zprd*mysplit[2][1];
+    else subhi[2] = boxhi[2];
   }
 }
 
@@ -1719,27 +1716,49 @@ void Domain::bbox(double *lo, double *hi, double *bboxlo, double *bboxhi)
 }
 
 /* ----------------------------------------------------------------------
-   compute 8 corner pts of triclinic box
-   8 are ordered with x changing fastest, then y, finally z
-   could be more efficient if just coded with xy,yz,xz explicitly
+   compute 8 corner pts of my triclinic sub-box
+   output is in corners, see ordering in lamda_box_corners
 ------------------------------------------------------------------------- */
 
 void Domain::box_corners()
 {
-  corners[0][0] = 0.0; corners[0][1] = 0.0; corners[0][2] = 0.0;
+  lamda_box_corners(boxlo_lamda,boxhi_lamda);
+}
+
+/* ----------------------------------------------------------------------
+   compute 8 corner pts of my triclinic sub-box
+   output is in corners, see ordering in lamda_box_corners
+------------------------------------------------------------------------- */
+
+void Domain::subbox_corners()
+{
+  lamda_box_corners(sublo_lamda,subhi_lamda);
+}
+
+/* ----------------------------------------------------------------------
+   compute 8 corner pts of any triclinic box with lo/hi in lamda coords
+   8 output conners are ordered with x changing fastest, then y, finally z
+   could be more efficient if just coded with xy,yz,xz explicitly
+------------------------------------------------------------------------- */
+
+void Domain::lamda_box_corners(double *lo, double *hi)
+{
+  corners[0][0] = lo[0]; corners[0][1] = lo[1]; corners[0][2] = lo[2];
   lamda2x(corners[0],corners[0]);
-  corners[1][0] = 1.0; corners[1][1] = 0.0; corners[1][2] = 0.0;
+  corners[1][0] = hi[0]; corners[1][1] = lo[1]; corners[1][2] = lo[2];
   lamda2x(corners[1],corners[1]);
-  corners[2][0] = 0.0; corners[2][1] = 1.0; corners[2][2] = 0.0;
+  corners[2][0] = lo[0]; corners[2][1] = hi[1]; corners[2][2] = lo[2];
   lamda2x(corners[2],corners[2]);
-  corners[3][0] = 1.0; corners[3][1] = 1.0; corners[3][2] = 0.0;
+  corners[3][0] = hi[0]; corners[3][1] = hi[1]; corners[3][2] = lo[2];
   lamda2x(corners[3],corners[3]);
-  corners[4][0] = 0.0; corners[4][1] = 0.0; corners[4][2] = 1.0;
+  corners[4][0] = lo[0]; corners[4][1] = lo[1]; corners[4][2] = hi[2];
   lamda2x(corners[4],corners[4]);
-  corners[5][0] = 1.0; corners[5][1] = 0.0; corners[5][2] = 1.0;
+  corners[5][0] = hi[0]; corners[5][1] = lo[1]; corners[5][2] = hi[2];
   lamda2x(corners[5],corners[5]);
-  corners[6][0] = 0.0; corners[6][1] = 1.0; corners[6][2] = 1.0;
+  corners[6][0] = lo[0]; corners[6][1] = hi[1]; corners[6][2] = hi[2];
   lamda2x(corners[6],corners[6]);
-  corners[7][0] = 1.0; corners[7][1] = 1.0; corners[7][2] = 1.0;
+  corners[7][0] = hi[0]; corners[7][1] = hi[1]; corners[7][2] = subhi_lamda[2];
   lamda2x(corners[7],corners[7]);
 }
+
+

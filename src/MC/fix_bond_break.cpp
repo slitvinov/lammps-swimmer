@@ -263,7 +263,7 @@ void FixBondBreak::post_integrate()
   }
 
   commflag = 1;
-  comm->forward_comm_fix(this);
+  comm->forward_comm_fix(this,2);
 
   // break bonds
   // if both atoms list each other as winning bond partner
@@ -342,7 +342,7 @@ void FixBondBreak::post_integrate()
   // 1-2 neighs already reflect broken bonds
 
   commflag = 2;
-  comm->forward_comm_variable_fix(this);
+  comm->forward_comm_fix(this);
 
   // create list of broken bonds that influence my owned atoms
   //   even if between owned-ghost or ghost-ghost atoms
@@ -702,8 +702,8 @@ void FixBondBreak::post_integrate_respa(int ilevel, int iloop)
 
 /* ---------------------------------------------------------------------- */
 
-int FixBondBreak::pack_comm(int n, int *list, double *buf,
-                            int pbc_flag, int *pbc)
+int FixBondBreak::pack_forward_comm(int n, int *list, double *buf,
+                                    int pbc_flag, int *pbc)
 {
   int i,j,k,m,ns;
 
@@ -714,7 +714,7 @@ int FixBondBreak::pack_comm(int n, int *list, double *buf,
       buf[m++] = ubuf(partner[j]).d;
       buf[m++] = probability[j];
     }
-    return 2;
+    return m;
   }
 
   int **nspecial = atom->nspecial;
@@ -734,7 +734,7 @@ int FixBondBreak::pack_comm(int n, int *list, double *buf,
 
 /* ---------------------------------------------------------------------- */
 
-void FixBondBreak::unpack_comm(int n, int first, double *buf)
+void FixBondBreak::unpack_forward_comm(int n, int first, double *buf)
 {
   int i,j,m,ns,last;
 
@@ -775,7 +775,7 @@ int FixBondBreak::pack_reverse_comm(int n, int first, double *buf)
     buf[m++] = ubuf(partner[i]).d;
     buf[m++] = distsq[i];
   }
-  return 2;
+  return m;
 }
 
 /* ---------------------------------------------------------------------- */

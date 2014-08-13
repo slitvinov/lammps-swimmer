@@ -1,0 +1,35 @@
+# number of particles in each of the directions
+variable          nx   equal 100
+variable          ny   equal 100
+if "${ndim}==3" then &
+"variable nz equal 6"
+
+# size of the domain
+variable          Lx   equal  1.0
+variable          Ly   equal  1.0
+if "${ndim}==3" then &
+"variable Lz equal ${Lx}/${nx}*${nz}"
+variable          dx   equal  ${Lx}/${nx}
+
+# density of droplet
+variable          sph_rho equal 1.0
+
+# sound speed 
+variable          sph_c equal 10.0
+
+# viscosity of droplet 
+variable          sph_eta equal 1e-2
+
+#variable          pb equal ${sph_c}^2*${sph_rho}
+variable          pb equal ${sph_c}^2*${sph_rho}
+
+variable          h equal 3.0*${dx}
+variable          Nfreq equal 1000
+variable          Nfreqimage equal 1000
+
+# mass of droplet particle
+variable          sph_mass equal ${dx}^${ndim}*${sph_rho}
+# mass of gas particle
+
+# type of the gas particle
+variable          g_type equal 1

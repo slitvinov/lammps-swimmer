@@ -12,6 +12,7 @@
  ------------------------------------------------------------------------- */
 
 #include "math.h"
+#include "string.h"
 #include "stdlib.h"
 #include "pair_sph_rhosum.h"
 #include "atom.h"
@@ -24,6 +25,8 @@
 #include "neighbor.h"
 #include "update.h"
 #include "domain.h"
+#include "sph_kernel_dispatch.h"
+#include "sph_kernel.h"
 
 using namespace LAMMPS_NS;
 
@@ -47,6 +50,14 @@ PairSPHRhoSum::~PairSPHRhoSum() {
     memory->destroy(cutsq);
 
     memory->destroy(cut);
+
+    int n = atom->ntypes;
+    for (int i=0; i<=n; ++i) {
+      for (int j=0; j<=n; ++j) 	delete ker[i][j];
+      delete[] ker[i];
+    }
+    delete[] ker;
+
   }
 }
 
@@ -66,7 +77,7 @@ void PairSPHRhoSum::init_style() {
 void PairSPHRhoSum::compute(int eflag, int vflag) {
   int i, j, ii, jj, jnum, itype, jtype;
   double xtmp, ytmp, ztmp, delx, dely, delz;
-  double rsq, imass, h, ih, ihsq;
+  double rsq, imass;
   int *jlist;
   double wf;
   // neighbor list variables
@@ -117,26 +128,7 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
         i = ilist[ii];
         itype = type[i];
         imass = mass[itype];
-
-        h = cut[itype][itype];
-        if (domain->dimension == 3) {
-          /*
-          // Lucy kernel, 3d
-          wf = 2.0889086280811262819e0 / (h * h * h);
-          */
-
-          // quadric kernel, 3d
-          wf = 2.1541870227086614782 / (h * h * h);
-        } else {
-          /*
-          // Lucy kernel, 2d
-          wf = 1.5915494309189533576e0 / (h * h);
-          */
-
-          // quadric kernel, 2d
-          wf = 1.5915494309189533576e0 / (h * h);
-        }
-
+	wf = ker[itype][itype]->w(0.0, cut[itype][itype]);
         rho[i] = imass * wf;
       }
 
@@ -161,35 +153,7 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
           rsq = delx * delx + dely * dely + delz * delz;
 
           if (rsq < cutsq[itype][jtype]) {
-            h = cut[itype][jtype];
-            ih = 1.0 / h;
-            ihsq = ih * ih;
-
-            if (domain->dimension == 3) {
-              /*
-              // Lucy kernel, 3d
-              r = sqrt(rsq);
-              wf = (h - r) * ihsq;
-              wf =  2.0889086280811262819e0 * (h + 3. * r) * wf * wf * wf * ih;
-              */
-
-              // quadric kernel, 3d
-              wf = 1.0 - rsq * ihsq;
-              wf = wf * wf;
-              wf = wf * wf;
-              wf = 2.1541870227086614782e0 * wf * ihsq * ih;
-            } else {
-              // Lucy kernel, 2d
-              //r = sqrt(rsq);
-              //wf = (h - r) * ihsq;
-              //wf = 1.5915494309189533576e0 * (h + 3. * r) * wf * wf * wf;
-
-              // quadric kernel, 2d
-              wf = 1.0 - rsq * ihsq;
-              wf = wf * wf;
-              wf = wf * wf;
-              wf = 1.5915494309189533576e0 * wf * ihsq;
-            }
+	    wf = ker[itype][jtype]->w(sqrt(rsq), cut[itype][jtype]);
 
             rho[i] += mass[jtype] * wf;
           }
@@ -217,8 +181,14 @@ void PairSPHRhoSum::allocate() {
       setflag[i][j] = 0;
 
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
-
   memory->create(cut, n + 1, n + 1, "pair:cut");
+
+  ker = new pSPHKernel*[n+1];
+  for (int i=0; i<=n; ++i) {
+    ker[i] = new pSPHKernel[n+1];
+    for (int j=0; j<=n; ++j)
+      ker[i][j] = NULL;
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -237,7 +207,7 @@ void PairSPHRhoSum::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHRhoSum::coeff(int narg, char **arg) {
-  if (narg != 3)
+  if (narg != 4)
     error->all(FLERR,"Incorrect number of args for sph/rhosum coefficients");
   if (!allocated)
     allocate();
@@ -246,13 +216,22 @@ void PairSPHRhoSum::coeff(int narg, char **arg) {
   force->bounds(arg[0], atom->ntypes, ilo, ihi);
   force->bounds(arg[1], atom->ntypes, jlo, jhi);
 
-  double cut_one = force->numeric(FLERR,arg[2]);
+  int i_kernel_name = 2;
+  char *kernel_name_one;
+  int n_kernel_name = strlen(arg[i_kernel_name]) + 1;
+  kernel_name_one = new char[n_kernel_name];
+  strcpy(kernel_name_one, arg[i_kernel_name]);
+  double cut_one = force->numeric(FLERR,arg[3]);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
+
+      ker[i][j] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+      if (i!=j) ker[j][i] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+
       setflag[i][j] = 1;
       count++;
     }
@@ -287,8 +266,8 @@ double PairSPHRhoSum::single(int i, int j, int itype, int jtype, double rsq,
 
 /* ---------------------------------------------------------------------- */
 
-int PairSPHRhoSum::pack_comm(int n, int *list, double *buf, int pbc_flag,
-    int *pbc) {
+int PairSPHRhoSum::pack_forward_comm(int n, int *list, double *buf, 
+                                     int pbc_flag, int *pbc) {
   int i, j, m;
   double *rho = atom->rho;
 
@@ -297,12 +276,12 @@ int PairSPHRhoSum::pack_comm(int n, int *list, double *buf, int pbc_flag,
     j = list[i];
     buf[m++] = rho[j];
   }
-  return 1;
+  return m;
 }
 
 /* ---------------------------------------------------------------------- */
 
-void PairSPHRhoSum::unpack_comm(int n, int first, double *buf) {
+void PairSPHRhoSum::unpack_forward_comm(int n, int first, double *buf) {
   int i, m, last;
   double *rho = atom->rho;
 

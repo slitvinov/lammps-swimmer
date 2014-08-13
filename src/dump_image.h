@@ -30,8 +30,8 @@ class DumpImage : public DumpCustom {
 
   DumpImage(class LAMMPS *, int, char**);
   virtual ~DumpImage();
-  int pack_comm(int, int *, double *, int, int *);
-  void unpack_comm(int, int, double *);
+  int pack_forward_comm(int, int *, double *, int, int *);
+  void unpack_forward_comm(int, int, double *);
 
  protected:
   int filetype;
@@ -54,6 +54,8 @@ class DumpImage : public DumpCustom {
   int zoomvar,perspvar;            // index to zoom,persp vars
   int boxflag,axesflag;            // 0/1 for draw box and axes
   double boxdiam,axeslen,axesdiam; // params for drawing box and axes
+  int subboxflag;
+  double subboxdiam;
 
   int viewflag;                    // overall view is static or dynamic
 

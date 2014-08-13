@@ -219,12 +219,10 @@ void PairPeriEPS::compute(int eflag, int vflag)
   }
   
   // ******** temp array to store Plastic extension *********** ///
-  double deviatorPlasticExtTemp[nlocal][maxpartner];
-  for (int ii = 0; ii < nlocal; ii++) {
-      for (int kk = 0; kk < maxpartner; kk++) {
-           deviatorPlasticExtTemp[ii][kk] = 0.0;
-      }
-  }     
+  // create on heap to reduce stack use and to allow for faster zeroing
+  double **deviatorPlasticExtTemp;
+  memory->create(deviatorPlasticExtTemp,nlocal,maxpartner,"pair:plastext");
+  memset(&(deviatorPlasticExtTemp[0][0]),0,sizeof(double)*nlocal*maxpartner);
   // ******** temp array to store Plastic extension *********** ///
                  
    
@@ -402,15 +400,12 @@ void PairPeriEPS::compute(int eflag, int vflag)
 
   // store new s0
 
-  for (i = 0; i < nlocal; i++) s0[i] = s0_new[i];
+  memcpy(s0,s0_new,sizeof(double)*nlocal);
   
-  for (i = 0; i < nlocal; i++) {
-      jnum = npartner[i];
-      for (jj = 0; jj < jnum; jj++) {
-         double temp_data = deviatorPlasticExtTemp[i][jj];
-         deviatorPlasticextension[i][jj] = temp_data;
-      }
-  }            
+  memcpy(&(deviatorPlasticextension[0][0]),
+         &(deviatorPlasticExtTemp[0][0]),
+         sizeof(double)*nlocal*maxpartner);
+  memory->destroy(deviatorPlasticExtTemp);
 }
 
 /* ----------------------------------------------------------------------
@@ -804,8 +799,8 @@ double PairPeriEPS::compute_DeviatoricForceStateNorm(int i)
    communication routines
 ---------------------------------------------------------------------- */
 
-int PairPeriEPS::pack_comm(int n, int *list, double *buf,
-                           int pbc_flag, int *pbc)
+int PairPeriEPS::pack_forward_comm(int n, int *list, double *buf,
+                                   int pbc_flag, int *pbc)
 {
   int i,j,m;
 
@@ -814,12 +809,12 @@ int PairPeriEPS::pack_comm(int n, int *list, double *buf,
     j = list[i];
     buf[m++] = theta[j];
   }
-  return 1;
+  return m;
 }
 
 /* ---------------------------------------------------------------------- */
 
-void PairPeriEPS::unpack_comm(int n, int first, double *buf)
+void PairPeriEPS::unpack_forward_comm(int n, int first, double *buf)
 {
   int i,m,last;
 

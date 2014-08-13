@@ -16,8 +16,8 @@ group              water type 1 # assign group name "water" to water particles (
 
 # use hybrid pairstyle which does density summation with cutoff ${h} every timestep (1)
 pair_style         hybrid/overlay sph/rhosum 1 sph/taitwater
-pair_coeff         * * sph/taitwater 1000.0 ${c} 1.0 ${h} # use target density of 1000, soundspeed ${c} for Tait's EOS
-pair_coeff         1 1 sph/rhosum ${h}
+pair_coeff         * * sph/taitwater lucy    1000.0 ${c} 1.0 ${h} # use target density of 1000, soundspeed ${c} for Tait's EOS
+pair_coeff         1 1 sph/rhosum    quadric ${h}
 
 fix                gfix water gravity -9.81 vector 0 1 0 # add gravity. This fix also computes potential energy of mass in gravity field.
 fix                2d_fix all enforce2d

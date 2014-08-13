@@ -12,6 +12,7 @@
  ------------------------------------------------------------------------- */
 
 #include "math.h"
+#include "string.h"
 #include "stdlib.h"
 #include "pair_sph_idealgas.h"
 #include "atom.h"
@@ -21,6 +22,7 @@
 #include "memory.h"
 #include "error.h"
 #include "domain.h"
+#include "sph_kernel_dispatch.h"
 
 using namespace LAMMPS_NS;
 
@@ -40,6 +42,13 @@ PairSPHIdealGas::~PairSPHIdealGas() {
 
     memory->destroy(cut);
     memory->destroy(viscosity);
+
+    int n = atom->ntypes;
+    for (int i=0; i<=n; ++i) {
+      for (int j=0; j<=n; ++j) 	delete ker[i][j];
+      delete[] ker[i];
+    }
+    delete[] ker;
   }
 }
 
@@ -50,7 +59,7 @@ void PairSPHIdealGas::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double vxtmp, vytmp, vztmp, imass, jmass, fi, fj, fvisc, h, ih, ihsq;
+  double vxtmp, vytmp, vztmp, imass, jmass, fi, fj, fvisc, h;
   double rsq, wfd, delVdotDelR, mu, deltaE, ci, cj;
 
   if (eflag || vflag)
@@ -107,22 +116,7 @@ void PairSPHIdealGas::compute(int eflag, int vflag) {
 
       if (rsq < cutsq[itype][jtype]) {
         h = cut[itype][jtype];
-        ih = 1. / h;
-        ihsq = ih * ih;
-
-        wfd = h - sqrt(rsq);
-        if (domain->dimension == 3) {
-          // Lucy Kernel, 3d
-          // Note that wfd, the derivative of the weight function with respect to r,
-          // is lacking a factor of r.
-          // The missing factor of r is recovered by
-          // (1) using delV . delX instead of delV . (delX/r) and
-          // (2) using f[i][0] += delx * fpair instead of f[i][0] += (delx/r) * fpair
-          wfd = -25.066903536973515383e0 * wfd * wfd * ihsq * ihsq * ihsq * ih;
-        } else {
-          // Lucy Kernel, 2d
-          wfd = -19.098593171027440292e0 * wfd * wfd * ihsq * ihsq * ihsq;
-        }
+	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
         fj = 0.4 * e[j] / jmass / rho[j];
 
@@ -191,6 +185,13 @@ void PairSPHIdealGas::allocate() {
 
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
+
+  ker = new pSPHKernel*[n+1];
+  for (int i=0; i<=n; ++i) {
+    ker[i] = new pSPHKernel[n+1];
+    for (int j=0; j<=n; ++j)
+      ker[i][j] = NULL;
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -208,7 +209,7 @@ void PairSPHIdealGas::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHIdealGas::coeff(int narg, char **arg) {
-  if (narg != 4)
+  if (narg != 5)
     error->all(FLERR,"Incorrect number of args for pair_style sph/idealgas coefficients");
   if (!allocated)
     allocate();
@@ -217,8 +218,14 @@ void PairSPHIdealGas::coeff(int narg, char **arg) {
   force->bounds(arg[0], atom->ntypes, ilo, ihi);
   force->bounds(arg[1], atom->ntypes, jlo, jhi);
 
-  double viscosity_one = force->numeric(FLERR,arg[2]);
-  double cut_one = force->numeric(FLERR,arg[3]);
+  int i_kernel_name = 2;
+  char *kernel_name_one;
+  int n_kernel_name = strlen(arg[i_kernel_name]) + 1;
+  kernel_name_one = new char[n_kernel_name];
+  strcpy(kernel_name_one, arg[i_kernel_name]);
+
+  double viscosity_one = force->numeric(FLERR,arg[3]);
+  double cut_one = force->numeric(FLERR,arg[4]);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
@@ -226,6 +233,10 @@ void PairSPHIdealGas::coeff(int narg, char **arg) {
       viscosity[i][j] = viscosity_one;
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
+
+      ker[i][j] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+      if (i!=j) ker[j][i] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
+
       setflag[i][j] = 1;
       count++;
     }

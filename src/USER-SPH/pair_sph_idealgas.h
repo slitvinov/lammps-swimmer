@@ -21,6 +21,7 @@ PairStyle(sph/idealgas,PairSPHIdealGas)
 #define LMP_PAIR_IDEALGAS_H
 
 #include "pair.h"
+#include "sph_kernel.h"
 
 namespace LAMMPS_NS {
 
@@ -37,6 +38,7 @@ class PairSPHIdealGas : public Pair {
  protected:
   double **cut,**viscosity;
 
+  pSPHKernel  **ker;
   void allocate();
 };
 

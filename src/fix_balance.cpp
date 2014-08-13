@@ -73,12 +73,14 @@ FixBalance::FixBalance(LAMMPS *lmp, int narg, char **arg) :
 
   // optional args
 
+  outflag = 0;
   int outarg = 0;
   fp = NULL;
 
   while (iarg < narg) {
     if (strcmp(arg[iarg],"out") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal fix balance command");
+      outflag = 1;
       outarg = iarg+1;
       iarg += 2;
     } else error->all(FLERR,"Illegal fix balance command");
@@ -114,7 +116,7 @@ FixBalance::FixBalance(LAMMPS *lmp, int narg, char **arg) :
 
   // output file
 
-  if (outarg && comm->me == 0) {
+  if (outflag && comm->me == 0) {
     fp = fopen(arg[outarg],"w");
     if (fp == NULL) error->one(FLERR,"Cannot open fix balance output file");
   }
@@ -172,6 +174,9 @@ void FixBalance::setup(int vflag)
 void FixBalance::setup_pre_exchange()
 {
   // insure atoms are in current box & update box via shrink-wrap
+  // has to be be done before rebalance() invokes Irregular::migrate_atoms()
+  //   since it requires atoms be inside simulation box
+  //   even though pbc() will be done again in Verlet::run()
   // no exchange() since doesn't matter if atoms are assigned to correct procs
 
   if (domain->triclinic) domain->x2lamda(atom->nlocal);
@@ -253,9 +258,9 @@ void FixBalance::rebalance()
     comm->layout = LAYOUT_TILED;
   }
 
-  // output of final result
+  // output of new decomposition
 
-  if (fp) balance->dumpout(update->ntimestep,fp);
+  if (outflag) balance->dumpout(update->ntimestep,fp);
 
   // reset proc sub-domains
 
