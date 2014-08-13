@@ -137,6 +137,7 @@ void AtomVecMesoTrans::force_clear(int n, size_t nbytes)
 {
   memset(&de[n],0,nbytes);
   memset(&drho[n],0,nbytes);
+  memset(&fb[0][0],0,3*nbytes);
 }
 
 /* ---------------------------------------------------------------------- */
