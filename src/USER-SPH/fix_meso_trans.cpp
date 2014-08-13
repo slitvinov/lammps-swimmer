@@ -58,7 +58,6 @@ int FixMesoTrans::setmask() {
   int mask = 0;
   mask |= INITIAL_INTEGRATE;
   mask |= FINAL_INTEGRATE;
-  mask |= PRE_FORCE;
   return mask;
 }
 
@@ -67,11 +66,6 @@ int FixMesoTrans::setmask() {
 void FixMesoTrans::init() {
   dtv = update->dt;
   dtf = 0.5 * update->dt * force->ftm2v;
-}
-
-void FixMesoTrans::setup_pre_force(int vflag)
-{
-  // TODO: do nothing for fix_meso_trans
 }
 
 /* ----------------------------------------------------------------------
