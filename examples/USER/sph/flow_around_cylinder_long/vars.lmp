@@ -18,7 +18,7 @@ variable          sph_rho_background equal 1.0
 variable          sph_gamma equal 1
 
 # sound speed 
-variable          sph_c equal 5.77e-4
+variable          sph_c equal 5.77e-3
 
 # viscosity of droplet 
 variable          sph_eta equal 1e-3
