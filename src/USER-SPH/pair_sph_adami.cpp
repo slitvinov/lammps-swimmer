@@ -290,6 +290,7 @@ void PairSPHAdami::coeff(int narg, char **arg) {
       count++;
     }
   }
+  delete[] kernel_name_one;
 
   if (count == 0)
     error->all(FLERR,"Incorrect args for pair coefficients");
