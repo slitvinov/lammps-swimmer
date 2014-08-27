@@ -39,7 +39,8 @@ class PairSPHBN : public Pair {
   double *rho0, *soundspeed, *B;
   double **cut,**viscosity;
   int first;
-  
+
+  int me;
   FILE *fpr;
   int nxnodes,nynodes,nznodes,total_nnodes;
   int ***T_initial_set;
@@ -49,6 +50,7 @@ class PairSPHBN : public Pair {
   void allocate();
 
   void read_initial_electron_temperatures();
+  double get_electrone_field (double* xi);
 };
 
 }
