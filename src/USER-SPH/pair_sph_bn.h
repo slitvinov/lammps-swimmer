@@ -49,7 +49,7 @@ class PairSPHBN : public Pair {
   pSPHKernel  **ker;
   void allocate();
 
-  void read_initial_target_temperatures();
+  void read_initial_target_field();
   double get_target_field (double* xi);
   double bn_eos (double rho, double rho0, double B);
 };

@@ -252,7 +252,7 @@ void PairSPHBN::settings(int narg, char **arg) {
 
   // set target field from input file
   MPI_Comm_rank(world,&me);
-  if (me == 0) read_initial_target_temperatures();
+  if (me == 0) read_initial_target_field();
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
   
  }
@@ -335,7 +335,7 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
    only called by proc 0
 ------------------------------------------------------------------------- */
 
-void PairSPHBN::read_initial_target_temperatures() {
+void PairSPHBN::read_initial_target_field() {
   char line[MAXLINE];
 
   for (int ixnode = 0; ixnode < nxnodes; ixnode++)
@@ -359,7 +359,7 @@ void PairSPHBN::read_initial_target_temperatures() {
     for (int iynode = 0; iynode < nynodes; iynode++)
       for (int iznode = 0; iznode < nznodes; iznode++)
         if (T_initial_set[ixnode][iynode][iznode] == 0)
-          error->one(FLERR,"Initial temperatures not all set in pair/sph/bn");
+          error->one(FLERR,"Initial filed not all set in pair/sph/bn");
 
   // close file
 
