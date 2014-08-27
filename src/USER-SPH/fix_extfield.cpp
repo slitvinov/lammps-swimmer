@@ -126,6 +126,7 @@ void FixExtField::post_force(int vflag)
       while (iynode < 0) iynode += nynodes;
       while (iznode < 0) iznode += nznodes;
 
+      printf("T_electron: %i %i %i\n", ixnode, iynode, iznode);
       printf("T_electron: %g\n", T_electron[ixnode][iynode][iznode]);
       
     }
