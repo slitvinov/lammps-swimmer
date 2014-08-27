@@ -1,0 +1,53 @@
+echo               both
+dimension          3
+units              si
+atom_modify        map array sort 0 0
+atom_style         meso
+comm_modify    vel yes
+
+#2D box
+# domain size
+variable          Lx equal 10
+# smothing length
+variable          h equal 1
+
+variable          alpha equal 1.0
+
+variable          nLx equal -${Lx}
+region            box block 0 ${Lx} 0 ${Lx} ${nLx} ${Lx} units box
+
+create_box         2 box
+
+# run 
+create_atoms 1 single 5. 5. 5.  units box
+create_atoms 2 single 5.5 5. 5.  units box
+
+group           fst id 1
+group           scd id 2
+
+mass            1 1
+mass            2 2
+
+set             group fst meso_rho 1.0
+set             group scd meso_rho 2.0
+
+set             group all meso_e   1.0
+set             group all meso_cv  1.0
+
+variable        rho0   equal 1
+variable        cutoff equal 1
+variable        soundspeed equal 1
+variable        viscosity  equal 1
+variable        pb         equal 10
+pair_style      sph/bn  1 2 3 extfield.in
+
+pair_coeff	* * quintic ${rho0} ${soundspeed} ${viscosity} ${cutoff}
+
+# do full time integration
+fix                integrate_fix_full all  meso
+
+neighbor           0 bin
+timestep           0
+
+fix extra all print 1 "$(fx[1]) $(fx[2])" file outpt.dat screen no
+run                1
