@@ -57,7 +57,7 @@ PairSPHBN::~PairSPHBN() {
     delete[] ker;
 
      memory->destroy(T_initial_set);
-     memory->destroy(T_electron);
+     memory->destroy(T_target);
   }
 }
 
@@ -115,8 +115,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
   for (ii = 0; ii < inum; ii++) {
     i = ilist[ii];
 
-    double Tfield = get_electrone_field(x[i]);
-    printf("Tfield: %g\n", Tfield);
+    double Tfield = get_target_field(x[i]);
+    printf("Tfield[%i]: %g\n", i, Tfield);
 
     xtmp = x[i][0];
     ytmp = x[i][1];
@@ -255,12 +255,12 @@ void PairSPHBN::settings(int narg, char **arg) {
   total_nnodes = nxnodes*nynodes*nznodes;
 
   memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
-  memory->create(T_electron,nxnodes,nynodes,nznodes,"ttm:T_electron");
+  memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
 
-  // set initial electron temperatures from user input file
+  // set target field from input file
   MPI_Comm_rank(world,&me);
-  if (me == 0) read_initial_electron_temperatures();
-  MPI_Bcast(&T_electron[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
+  if (me == 0) read_initial_target_temperatures();
+  MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
   
  }
 
@@ -340,11 +340,11 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 }
 
 /* ----------------------------------------------------------------------
-   read in initial electron temperatures from a user-specified file
+   read target field from a user-specified file
    only called by proc 0
 ------------------------------------------------------------------------- */
 
-void PairSPHBN::read_initial_electron_temperatures() {
+void PairSPHBN::read_initial_target_temperatures() {
   char line[MAXLINE];
 
   for (int ixnode = 0; ixnode < nxnodes; ixnode++)
@@ -352,15 +352,15 @@ void PairSPHBN::read_initial_electron_temperatures() {
       for (int iznode = 0; iznode < nznodes; iznode++)
         T_initial_set[ixnode][iynode][iznode] = 0;
 
-  // read initial electron temperature values from file
+  // read target values from file
 
   int ixnode,iynode,iznode;
   double T_tmp;
   while (1) {
     if (fgets(line,MAXLINE,fpr) == NULL) break;
     sscanf(line,"%d %d %d %lg",&ixnode,&iynode,&iznode,&T_tmp);
-    if (T_tmp < 0.0) error->one(FLERR,"pair/sph/bn electron temperatures must be > 0.0");
-    T_electron[ixnode][iynode][iznode] = T_tmp;
+    if (T_tmp < 0.0) error->one(FLERR,"pair/sph/bn target filed must be > 0.0");
+    T_target[ixnode][iynode][iznode] = T_tmp;
     T_initial_set[ixnode][iynode][iznode] = 1;
   }
 
@@ -375,7 +375,7 @@ void PairSPHBN::read_initial_electron_temperatures() {
   fclose(fpr);
 }
 
-double PairSPHBN::get_electrone_field (double* xi) {
+double PairSPHBN::get_target_field (double* xi) {
       double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
       double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
       double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
@@ -389,5 +389,5 @@ double PairSPHBN::get_electrone_field (double* xi) {
       while (iynode < 0) iynode += nynodes;
       while (iznode < 0) iznode += nznodes;
  
-      return T_electron[ixnode][iynode][iznode];
+      return T_target[ixnode][iynode][iznode];
 }
