@@ -44,7 +44,6 @@ PairSPHBN::~PairSPHBN() {
     memory->destroy(cutsq);
 
     memory->destroy(cut);
-    memory->destroy(rho0);
     memory->destroy(soundspeed);
     memory->destroy(B);
     memory->destroy(viscosity);
@@ -115,9 +114,6 @@ void PairSPHBN::compute(int eflag, int vflag) {
   for (ii = 0; ii < inum; ii++) {
     i = ilist[ii];
 
-    double Tfield = get_target_field(x[i]);
-    printf("Tfield[%i]: %g\n", i, Tfield);
-
     xtmp = x[i][0];
     ytmp = x[i][1];
     ztmp = x[i][2];
@@ -131,7 +127,7 @@ void PairSPHBN::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     // compute pressure of atom i with Tait EOS
-    double pi = bn_eos(rho[i], rho0[itype], B[itype]);
+    double pi = bn_eos(rho[i], get_target_field(x[i]), B[itype]);
     fi = pi  / (rho[i] * rho[i]);
 
     for (jj = 0; jj < jnum; jj++) {
@@ -149,7 +145,7 @@ void PairSPHBN::compute(int eflag, int vflag) {
 	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
         // compute pressure  of atom j with Tait EOS
-        double pj = bn_eos(rho[j], rho0[jtype], B[jtype]);
+        double pj = bn_eos(rho[j], get_target_field(x[i]), B[jtype]);
         fj = pj  / (rho[j] * rho[j]);
 
         velx=vxtmp - v[j][0];
@@ -213,7 +209,6 @@ void PairSPHBN::allocate() {
 
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
 
-  memory->create(rho0, n + 1, "pair:rho0");
   memory->create(soundspeed, n + 1, "pair:soundspeed");
   memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
@@ -268,7 +263,7 @@ void PairSPHBN::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
  void PairSPHBN::coeff(int narg, char **arg) {
-  if (narg != 7)
+  if (narg != 6)
     error->all(FLERR,
         "Incorrect args for pair_style pair/sph/bn coefficients");
   if (!allocated)
@@ -284,15 +279,13 @@ void PairSPHBN::settings(int narg, char **arg) {
   kernel_name_one = new char[n_kernel_name];
   strcpy(kernel_name_one, arg[i_kernel_name]);
 
-  double rho0_one = force->numeric(FLERR,arg[3]);
-  double soundspeed_one = force->numeric(FLERR,arg[4]);
-  double viscosity_one = force->numeric(FLERR,arg[5]);
-  double cut_one = force->numeric(FLERR,arg[6]);
-  double B_one = soundspeed_one * soundspeed_one * rho0_one / 7.0;
+  double soundspeed_one = force->numeric(FLERR,arg[3]);
+  double viscosity_one = force->numeric(FLERR,arg[4]);
+  double cut_one = force->numeric(FLERR,arg[5]);
+  double B_one = soundspeed_one * soundspeed_one;
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
-    rho0[i] = rho0_one;
     soundspeed[i] = soundspeed_one;
     B[i] = B_one;
     for (int j = MAX(jlo,i); j <= jhi; j++) {
@@ -391,7 +384,5 @@ double PairSPHBN::get_target_field (double* xi) {
 }
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
-    double tmp = rho / rho0;
-    double fi  = tmp * tmp * tmp;
-    return B  * (fi * fi * tmp - 1.0);
+    return B  * rho / rho0;
 }

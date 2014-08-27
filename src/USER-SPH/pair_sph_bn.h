@@ -36,7 +36,7 @@ class PairSPHBN : public Pair {
   virtual double single(int, int, int, int, double, double, double, double &);
 
  protected:
-  double *rho0, *soundspeed, *B;
+  double *soundspeed, *B;
   double **cut,**viscosity;
   int first;
 
