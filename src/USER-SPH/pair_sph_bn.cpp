@@ -259,9 +259,7 @@ void PairSPHBN::settings(int narg, char **arg) {
   if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
 					 T_initial_set, T_target, error);
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
-  
  }
-
 
 /* ----------------------------------------------------------------------
  set coeffs for one or more type pairs
