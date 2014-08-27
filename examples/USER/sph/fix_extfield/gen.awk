@@ -19,7 +19,7 @@ BEGIN {
 NR==1{
     nx=$2
     ny=$3
-    printf "variable bn string \"sph/bn  %i %i %i %s\"\n",
+    printf "variable bn string \"%i %i %i %s\"\n",
 	nx, ny, 1, "table.in" > "in.bn"
     close("in.bn")
 

@@ -23,18 +23,24 @@ set             group all meso_e   1.0
 
 variable        cutoff     equal 3*${dx}
 
-variable        sph_c      equal 10.0
+variable        sph_c      equal 100.0
 variable        sph_rho    equal 1
 variable        sph_eta    equal 1
 variable        sph_mu     equal ${sph_eta}/${sph_rho}
-variable        Nfreq      equal 1
+variable        Nfreq      equal 100
 include         settimestep.lmp
 
 include         in.bn
-pair_style      hybrid/overlay sph/rhosum 1 ${bn}
+pair_style      hybrid/overlay sph/rhosum 1 sph/bn ${bn}
 
 pair_coeff	1 1 sph/bn  quintic ${sph_c} ${sph_eta} ${cutoff}
 pair_coeff	1 1 sph/rhosum quintic ${cutoff}
+
+compute         rho     all  meso_rho/atom
+compute         rho_tg  all  target/field ${bn}
+#variable        rho_de  atom c_rho_tg-c_rho
+dump            dump_txt all custom ${Nfreq} dump.*.dat id type x y vx vy c_rho c_rho_tg
+dump_modify     dump_txt first yes sort id pad 8
 
 # do full time integration
 fix                integrate_fix_full all  meso
@@ -45,7 +51,7 @@ comm_modify        vel yes
 
 timestep           ${dt}
 
-fix extra all print 1 "$(fx[1]) $(fx[2])" file outpt.dat screen no
+fix extra all print ${Nfreq} "$(fx[1]) $(fx[2])" file outpt.dat screen no
 
 dump               dump_xyz all xyz ${Nfreq} data.xyz
 dump_modify        dump_xyz element A
