@@ -131,9 +131,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     // compute pressure of atom i with Tait EOS
-    tmp = rho[i] / rho0[itype];
-    fi = tmp * tmp * tmp;
-    fi = B[itype] * (fi * fi * tmp - 1.0) / (rho[i] * rho[i]);
+    double pi = bn_eos(rho[i], rho0[itype], B[itype]);
+    fi = pi  / (rho[i] * rho[i]);
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -150,9 +149,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
 	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
         // compute pressure  of atom j with Tait EOS
-        tmp = rho[j] / rho0[jtype];
-        fj = tmp * tmp * tmp;
-        fj = B[jtype] * (fj * fj * tmp - 1.0) / (rho[j] * rho[j]);
+        double pj = bn_eos(rho[j], rho0[jtype], B[jtype]);
+        fj = pj  / (rho[j] * rho[j]);
 
         velx=vxtmp - v[j][0];
         vely=vytmp - v[j][1];
@@ -390,4 +388,10 @@ double PairSPHBN::get_target_field (double* xi) {
       while (iznode < 0) iznode += nznodes;
  
       return T_target[ixnode][iynode][iznode];
+}
+
+double PairSPHBN::bn_eos (double rho, double rho0, double B) {
+    double tmp = rho / rho0;
+    double fi  = tmp * tmp * tmp;
+    return B  * (fi * fi * tmp - 1.0);
 }

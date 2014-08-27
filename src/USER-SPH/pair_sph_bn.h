@@ -51,6 +51,7 @@ class PairSPHBN : public Pair {
 
   void read_initial_target_temperatures();
   double get_target_field (double* xi);
+  double bn_eos (double rho, double rho0, double B);
 };
 
 }
