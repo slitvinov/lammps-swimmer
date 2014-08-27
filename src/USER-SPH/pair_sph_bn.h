@@ -41,7 +41,6 @@ class PairSPHBN : public Pair {
   int first;
 
   int me;
-  FILE *fpr;
   int nxnodes,nynodes,nznodes,total_nnodes;
   int ***T_initial_set;
   double ***T_target;
@@ -49,8 +48,6 @@ class PairSPHBN : public Pair {
   pSPHKernel  **ker;
   void allocate();
 
-  void read_initial_target_field();
-  double get_target_field (double* xi);
   double bn_eos (double rho, double rho0, double B);
 };
 

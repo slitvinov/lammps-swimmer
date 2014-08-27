@@ -23,10 +23,10 @@
 #include "error.h"
 #include "domain.h"
 #include "sph_kernel_dispatch.h"
+#include "sph_bn_utils.h"
 
 using namespace LAMMPS_NS;
 
-#define MAXLINE 1024
 
 /* ---------------------------------------------------------------------- */
 
@@ -126,8 +126,10 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
     imass = mass[itype];
 
-    // compute pressure of atom i with Tait EOS
-    double pi = bn_eos(rho[i], get_target_field(x[i]), B[itype]);
+    // compute pressure of atom i
+    double rho0i = get_target_field(x[i], domain , T_target,
+      nxnodes, nynodes, nznodes);
+    double pi = bn_eos(rho[i], rho0i, B[itype]);
     fi = pi  / (rho[i] * rho[i]);
 
     for (jj = 0; jj < jnum; jj++) {
@@ -144,8 +146,10 @@ void PairSPHBN::compute(int eflag, int vflag) {
       if (rsq < cutsq[itype][jtype]) {
 	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
-        // compute pressure  of atom j with Tait EOS
-        double pj = bn_eos(rho[j], get_target_field(x[i]), B[jtype]);
+        // compute pressure  of atom j
+	double rho0j = get_target_field(x[j], domain , T_target,
+	  nxnodes, nynodes, nznodes);
+        double pj = bn_eos(rho[j], rho0j, B[jtype]);
         fj = pj  / (rho[j] * rho[j]);
 
         velx=vxtmp - v[j][0];
@@ -233,7 +237,7 @@ void PairSPHBN::settings(int narg, char **arg) {
   nynodes = force->inumeric(FLERR,arg[1]);
   nznodes = force->inumeric(FLERR,arg[2]);
 
-  fpr = fopen(arg[3],"r");
+  FILE* fpr = fopen(arg[3],"r");
   if (fpr == NULL) {
     char str[128];
     sprintf(str,"Cannot open file %s",arg[3]);
@@ -252,7 +256,8 @@ void PairSPHBN::settings(int narg, char **arg) {
 
   // set target field from input file
   MPI_Comm_rank(world,&me);
-  if (me == 0) read_initial_target_field();
+  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
+					 T_initial_set, T_target, error);
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
   
  }
@@ -330,58 +335,6 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
   return 0.0;
 }
 
-/* ----------------------------------------------------------------------
-   read target field from a user-specified file
-   only called by proc 0
-------------------------------------------------------------------------- */
-
-void PairSPHBN::read_initial_target_field() {
-  char line[MAXLINE];
-
-  for (int ixnode = 0; ixnode < nxnodes; ixnode++)
-    for (int iynode = 0; iynode < nynodes; iynode++)
-      for (int iznode = 0; iznode < nznodes; iznode++)
-        T_initial_set[ixnode][iynode][iznode] = 0;
-
-  // read target values from file
-
-  int ixnode,iynode,iznode;
-  double T_tmp;
-  while (1) {
-    if (fgets(line,MAXLINE,fpr) == NULL) break;
-    sscanf(line,"%d %d %d %lg",&ixnode,&iynode,&iznode,&T_tmp);
-    if (T_tmp < 0.0) error->one(FLERR,"pair/sph/bn target filed must be > 0.0");
-    T_target[ixnode][iynode][iznode] = T_tmp;
-    T_initial_set[ixnode][iynode][iznode] = 1;
-  }
-
-  for (int ixnode = 0; ixnode < nxnodes; ixnode++)
-    for (int iynode = 0; iynode < nynodes; iynode++)
-      for (int iznode = 0; iznode < nznodes; iznode++)
-        if (T_initial_set[ixnode][iynode][iznode] == 0)
-          error->one(FLERR,"Initial filed not all set in pair/sph/bn");
-
-  // close file
-
-  fclose(fpr);
-}
-
-double PairSPHBN::get_target_field (double* xi) {
-      double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
-      double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
-      double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
-      int ixnode = static_cast<int>(xscale*nxnodes);
-      int iynode = static_cast<int>(yscale*nynodes);
-      int iznode = static_cast<int>(zscale*nznodes);
-      while (ixnode > nxnodes-1) ixnode -= nxnodes;
-      while (iynode > nynodes-1) iynode -= nynodes;
-      while (iznode > nznodes-1) iznode -= nznodes;
-      while (ixnode < 0) ixnode += nxnodes;
-      while (iynode < 0) iynode += nynodes;
-      while (iznode < 0) iznode += nznodes;
- 
-      return T_target[ixnode][iynode][iznode];
-}
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
     return B  * rho / rho0;
