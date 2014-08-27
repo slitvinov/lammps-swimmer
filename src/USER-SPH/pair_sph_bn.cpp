@@ -26,6 +26,8 @@
 
 using namespace LAMMPS_NS;
 
+#define MAXLINE 1024
+
 /* ---------------------------------------------------------------------- */
 
 PairSPHBN::PairSPHBN(LAMMPS *lmp) : Pair(lmp)
@@ -223,21 +225,39 @@ void PairSPHBN::allocate() {
 /* ----------------------------------------------------------------------
  global settings
  ------------------------------------------------------------------------- */
-
 void PairSPHBN::settings(int narg, char **arg) {
-  if (narg != 0)
-    error->all(FLERR,
-        "Illegal number of setting arguments for pair_style sph/bn");
-}
+  if (narg != 4) error->all(FLERR,"Illegal pair_style pair/sph/bn command"
+			    " (4 arguments required)");
+
+  nxnodes = force->inumeric(FLERR,arg[0]);
+  nynodes = force->inumeric(FLERR,arg[1]);
+  nznodes = force->inumeric(FLERR,arg[2]);
+
+  fpr = fopen(arg[3],"r");
+  if (fpr == NULL) {
+    char str[128];
+    sprintf(str,"Cannot open file %s",arg[3]);
+    error->one(FLERR,str);
+  }
+
+  if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
+    error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
+
+
+  // allocate 3d grid variables
+  total_nnodes = nxnodes*nynodes*nznodes;
+
+ }
+
 
 /* ----------------------------------------------------------------------
  set coeffs for one or more type pairs
  ------------------------------------------------------------------------- */
 
-void PairSPHBN::coeff(int narg, char **arg) {
+ void PairSPHBN::coeff(int narg, char **arg) {
   if (narg != 7)
     error->all(FLERR,
-        "Incorrect args for pair_style sph/bn coefficients");
+        "Incorrect args for pair_style pair/sph/bn coefficients");
   if (!allocated)
     allocate();
 
@@ -286,7 +306,7 @@ void PairSPHBN::coeff(int narg, char **arg) {
 double PairSPHBN::init_one(int i, int j) {
 
   if (setflag[i][j] == 0) {
-    error->all(FLERR,"Not all pair sph/bn coeffs are not set");
+    error->all(FLERR,"Not all pair pair/sph/bn coeffs are not set");
   }
 
   cut[j][i] = cut[i][j];
@@ -302,4 +322,41 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
   fforce = 0.0;
 
   return 0.0;
+}
+
+/* ----------------------------------------------------------------------
+   read in initial electron temperatures from a user-specified file
+   only called by proc 0
+------------------------------------------------------------------------- */
+
+void PairSPHBN::read_initial_electron_temperatures()
+{
+  char line[MAXLINE];
+
+  for (int ixnode = 0; ixnode < nxnodes; ixnode++)
+    for (int iynode = 0; iynode < nynodes; iynode++)
+      for (int iznode = 0; iznode < nznodes; iznode++)
+        T_initial_set[ixnode][iynode][iznode] = 0;
+
+  // read initial electron temperature values from file
+
+  int ixnode,iynode,iznode;
+  double T_tmp;
+  while (1) {
+    if (fgets(line,MAXLINE,fpr) == NULL) break;
+    sscanf(line,"%d %d %d %lg",&ixnode,&iynode,&iznode,&T_tmp);
+    if (T_tmp < 0.0) error->one(FLERR,"pair/sph/bn electron temperatures must be > 0.0");
+    T_electron[ixnode][iynode][iznode] = T_tmp;
+    T_initial_set[ixnode][iynode][iznode] = 1;
+  }
+
+  for (int ixnode = 0; ixnode < nxnodes; ixnode++)
+    for (int iynode = 0; iynode < nynodes; iynode++)
+      for (int iznode = 0; iznode < nznodes; iznode++)
+        if (T_initial_set[ixnode][iynode][iznode] == 0)
+          error->one(FLERR,"Initial temperatures not all set in pair/sph/bn");
+
+  // close file
+
+  fclose(fpr);
 }
