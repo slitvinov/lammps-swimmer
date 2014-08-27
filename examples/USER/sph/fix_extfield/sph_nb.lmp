@@ -8,10 +8,6 @@ comm_modify    vel yes
 #2D box
 # domain size
 variable          Lx equal 10
-# smothing length
-variable          h equal 1
-
-variable          alpha equal 1.0
 
 variable          nLx equal -${Lx}
 region            box block 0 ${Lx} 0 ${Lx} ${nLx} ${Lx} units box
@@ -39,7 +35,8 @@ variable        cutoff equal 1
 variable        soundspeed equal 1
 variable        viscosity  equal 1
 variable        pb         equal 10
-pair_style      sph/bn  1 2 3 extfield.in
+#pair_style      sph/bn  1 2 3 extfield.in
+include         in.bn
 
 pair_coeff	* * quintic ${rho0} ${soundspeed} ${viscosity} ${cutoff}
 

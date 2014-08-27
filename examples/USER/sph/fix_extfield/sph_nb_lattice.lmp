@@ -1,0 +1,54 @@
+echo               both
+dimension          2
+units              si
+atom_modify        map array sort 0 0
+atom_style         meso
+comm_modify    vel yes
+
+include           in.box
+create_box        1 box
+
+include           in.lattice
+variable          Ndiff equal ${Ntarget}-$(count(all))
+if                "${Ndiff}>0" then &
+    "create_atoms 1 random ${Ndiff} 12345 box" &
+else &
+    "group gdelete id < ${Ntarget}" &
+    "delete_atoms group gdelete"
+
+mass              1 ${sph_mass}
+
+set             group all meso_rho 1.0
+set             group all meso_e   1.0
+
+variable        cutoff     equal 3*${dx}
+
+variable        sph_c      equal 10.0
+variable        sph_rho    equal 1
+variable        sph_eta    equal 1
+variable        sph_mu     equal ${sph_eta}/${sph_rho}
+variable        Nfreq      equal 1
+include         settimestep.lmp
+
+include         in.bn
+pair_style      hybrid/overlay sph/rhosum 1 ${bn}
+
+pair_coeff	1 1 sph/bn  quintic ${sph_c} ${sph_eta} ${cutoff}
+pair_coeff	1 1 sph/rhosum quintic ${cutoff}
+
+# do full time integration
+fix                integrate_fix_full all  meso
+
+neighbor           0 bin
+neigh_modify       delay 0 every 1
+comm_modify        vel yes
+
+timestep           ${dt}
+
+fix extra all print 1 "$(fx[1]) $(fx[2])" file outpt.dat screen no
+
+dump               dump_xyz all xyz ${Nfreq} data.xyz
+dump_modify        dump_xyz element A
+
+thermo             10
+run                10000
