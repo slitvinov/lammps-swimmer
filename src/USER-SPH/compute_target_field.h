@@ -35,6 +35,11 @@ class ComputeTargetField : public Compute {
  private:
   int nmax;
   double *evector;
+
+  int me;
+  int nxnodes,nynodes,nznodes,total_nnodes;
+  int ***T_initial_set;
+  double ***T_target;
 };
 
 }

@@ -12,7 +12,7 @@
 ------------------------------------------------------------------------- */
 
 #include "string.h"
-#include "compute_target_field..h"
+#include "compute_target_field.h"
 #include "atom.h"
 #include "update.h"
 #include "modify.h"
@@ -20,16 +20,42 @@
 #include "force.h"
 #include "memory.h"
 #include "error.h"
+#include "sph_bn_utils.h"
 
 using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-ComputeMesoEAtom::ComputeMesoEAtom(LAMMPS *lmp, int narg, char **arg) :
+ComputeTargetField::ComputeTargetField(LAMMPS *lmp, int narg, char **arg) :
   Compute(lmp, narg, arg)
 {
-  if (narg != 3) error->all(FLERR,"Number of arguments for compute target/field command != 3");
-  if (atom->e_flag != 1) error->all(FLERR,"compute target/field command requires atom_style with energy (e.g. meso)");
+  if (narg != 7) error->all(FLERR,"Wrong number of arguments for compute target/field command");
+
+  nxnodes = force->inumeric(FLERR,arg[3]);
+  nynodes = force->inumeric(FLERR,arg[4]);
+  nznodes = force->inumeric(FLERR,arg[5]);
+
+  FILE* fpr = fopen(arg[6],"r");
+  if (fpr == NULL) {
+    char str[128];
+    sprintf(str,"Cannot open file %s",arg[6]);
+    error->one(FLERR,str);
+  }
+
+  if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
+    error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
+  
+  // allocate 3d grid variables
+  total_nnodes = nxnodes*nynodes*nznodes;
+
+  memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
+  memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
+
+  // set target field from input file
+  MPI_Comm_rank(world,&me);
+  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
+					 T_initial_set, T_target, error);
+  MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
 
   peratom_flag = 1;
   size_peratom_cols = 0;
@@ -40,14 +66,14 @@ ComputeMesoEAtom::ComputeMesoEAtom(LAMMPS *lmp, int narg, char **arg) :
 
 /* ---------------------------------------------------------------------- */
 
-ComputeMesoEAtom::~ComputeMesoEAtom()
+ComputeTargetField::~ComputeTargetField()
 {
   memory->sfree(evector);
 }
 
 /* ---------------------------------------------------------------------- */
 
-void ComputeMesoEAtom::init()
+void ComputeTargetField::init()
 {
 
   int count = 0;
@@ -59,7 +85,7 @@ void ComputeMesoEAtom::init()
 
 /* ---------------------------------------------------------------------- */
 
-void ComputeMesoEAtom::compute_peratom()
+void ComputeTargetField::compute_peratom()
 {
   invoked_peratom = update->ntimestep;
 
@@ -73,24 +99,26 @@ void ComputeMesoEAtom::compute_peratom()
   }
 
   double *e = atom->e;
+  double **x = atom->x;
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
 
-    for (int i = 0; i < nlocal; i++) {
-      if (mask[i] & groupbit) {
-              evector[i] = e[i];
-      }
-      else {
-              evector[i] = 0.0;
-      }
+  for (int i = 0; i < nlocal; i++) {
+    if (mask[i] & groupbit) {
+      evector[i] = get_target_field(x[i], domain , T_target,
+				    nxnodes, nynodes, nznodes);
     }
+    else {
+      evector[i] = 0.0;
+    }
+  }
 }
 
 /* ----------------------------------------------------------------------
    memory usage of local atom-based array
 ------------------------------------------------------------------------- */
 
-double ComputeMesoEAtom::memory_usage()
+double ComputeTargetField::memory_usage()
 {
   double bytes = nmax * sizeof(double);
   return bytes;
