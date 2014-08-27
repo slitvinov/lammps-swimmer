@@ -76,7 +76,7 @@ FixExtField::FixExtField(LAMMPS *lmp, int narg, char **arg) :
   memory->create(T_electron,nxnodes,nynodes,nznodes,"ttm:T_electron");
 
   // set initial electron temperatures from user input file
-
+  MPI_Comm_rank(world,&me);
   if (me == 0) read_initial_electron_temperatures();
   MPI_Bcast(&T_electron[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
 }
