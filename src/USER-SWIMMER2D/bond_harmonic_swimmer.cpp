@@ -105,13 +105,6 @@ void BondHarmonicSwimmer::compute(int eflag, int vflag)
    
     if ( (tag1>=n1[type]) && (tag1<=n2[type]) && ((tag2-tag1)==1) ) {
        double s_aux = sin(omega[type]*(static_cast<double>(tag1) - n1[type]) + phi[type] - vel_sw[type]*delta);
-       if (s_aux>EPSILON) {
-         s_aux = 1;
-       } else if (s_aux<-EPSILON) {
-         s_aux = -1;
-       } else {
-         s_aux = 0;
-       }
        r0_local = r0[type] + A[type]*s_aux ;
     } else {
        r0_local = r0[type];
