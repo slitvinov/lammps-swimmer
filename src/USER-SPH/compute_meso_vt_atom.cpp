@@ -32,17 +32,17 @@ ComputeMesoVTAtom::ComputeMesoVTAtom(LAMMPS *lmp, int narg, char **arg) :
   if (atom->e_flag != 1) error->all(FLERR,"compute meso_vt/atom command requires atom_style with energy (e.g. meso)");
 
   peratom_flag = 1;
-  size_peratom_cols = 0;
+  size_peratom_cols = 3;
 
   nmax = 0;
-  evector = NULL;
+  vtvector = NULL;
 }
 
 /* ---------------------------------------------------------------------- */
 
 ComputeMesoVTAtom::~ComputeMesoVTAtom()
 {
-  memory->sfree(evector);
+  memory->destroy(vtvector);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -52,36 +52,54 @@ void ComputeMesoVTAtom::init()
 
   int count = 0;
   for (int i = 0; i < modify->ncompute; i++)
-    if (strcmp(modify->compute[i]->style,"evector/atom") == 0) count++;
+    if (strcmp(modify->compute[i]->style,"vtvector/atom") == 0) count++;
   if (count > 1 && comm->me == 0)
-    error->warning(FLERR,"More than one compute evector/atom");
+    error->warning(FLERR,"More than one compute vtvector/atom");
 }
 
 /* ---------------------------------------------------------------------- */
 
 void ComputeMesoVTAtom::compute_peratom()
 {
+  double dtfm;
+  
   invoked_peratom = update->ntimestep;
 
-  // grow evector array if necessary
+  // grow vtvector array if necessary
 
   if (atom->nlocal > nmax) {
-    memory->sfree(evector);
+    memory->destroy(vtvector);
     nmax = atom->nmax;
-    evector = (double *) memory->smalloc(nmax*sizeof(double),"evector/atom:evector");
-    vector_atom = evector;
+    memory->create(vtvector,nmax,3,"vtvector/atom:vtvector");
+    array_atom = vtvector;
   }
 
-  double *e = atom->e;
+  double **fb = atom->fb;
+  double **v = atom->v;
+  int *type = atom->type;
   int *mask = atom->mask;
+  double *mass = atom->mass;
+  double *rmass = atom->rmass;
+  int rmass_flag = atom->rmass_flag;
   int nlocal = atom->nlocal;
+  double dtf = 0.5 * update->dt * force->ftm2v;
 
     for (int i = 0; i < nlocal; i++) {
+      if (rmass_flag) {
+        dtfm = dtf / rmass[i];
+      } else {
+        dtfm = dtf / mass[type[i]];
+      }
+
       if (mask[i] & groupbit) {
-              evector[i] = e[i];
+              vtvector[i][0] = v[i][0] + dtfm * fb[i][0];
+              vtvector[i][1] = v[i][1] + dtfm * fb[i][1];
+              vtvector[i][2] = v[i][2] + dtfm * fb[i][2];
       }
       else {
-              evector[i] = 0.0;
+              vtvector[i][0] = 0.0;
+              vtvector[i][1] = 0.0;
+              vtvector[i][2] = 0.0;
       }
     }
 }

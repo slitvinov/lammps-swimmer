@@ -34,7 +34,7 @@ class ComputeMesoVTAtom : public Compute {
 
  private:
   int nmax;
-  double *evector;
+  double** vtvector;
 };
 
 }
