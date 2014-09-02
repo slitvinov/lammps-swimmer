@@ -47,8 +47,12 @@ BondHarmonicSwimmerExtended::~BondHarmonicSwimmerExtended()
     memory->destroy(r0);
     memory->destroy(r1);
 
-    memory->destroy(A);
-    memory->destroy(omega);
+    memory->destroy(A_alpha);
+    memory->destroy(A_beta);
+
+    memory->destroy(omega_alpha);
+    memory->destroy(omega_beta);
+
     memory->destroy(phi);
     memory->destroy(vel_sw);
 
@@ -104,8 +108,11 @@ void BondHarmonicSwimmerExtended::compute(int eflag, int vflag)
     r = sqrt(rsq);
    
     if ( (tag1>=n1[type]) && (tag1<=n2[type]) && ((tag2-tag1)==1) ) {
-       double s_aux = sin(omega[type]*(static_cast<double>(tag1) - n1[type]) + phi[type] - vel_sw[type]*delta);
-       r0_local = r0[type] + A[type]*s_aux ;
+      double dn = static_cast<double>(tag1) - n1[type];
+      double omega = omega_beta[type]*dn + omega_alpha[type];
+      double A     = A_beta[type]*dn     + A_alpha[type];
+      double s_aux = sin(omega*dn + phi[type] - vel_sw[type]*delta);
+      r0_local = r0[type] + A*s_aux ;
     } else {
        r0_local = r0[type];
     }
@@ -150,8 +157,12 @@ void BondHarmonicSwimmerExtended::allocate()
   memory->create(r0,    n+1,"bond:r0");
   memory->create(r1,    n+1,"bond:r1");
 
-  memory->create(A,    n+1,"bond:A");
-  memory->create(omega,    n+1,"bond:omega");
+  memory->create(A_alpha,    n+1,"bond:A_alpha");
+  memory->create(A_beta,    n+1,"bond:A_beta");
+
+  memory->create(omega_alpha,    n+1,"bond:omega_alpha");
+  memory->create(omega_beta,     n+1,"bond:omega_beta");
+
   memory->create(phi,    n+1,"bond:phi");
   memory->create(vel_sw,    n+1,"bond:vel_sw");
 
@@ -169,7 +180,7 @@ void BondHarmonicSwimmerExtended::allocate()
 
 void BondHarmonicSwimmerExtended::coeff(int narg, char **arg)
 {
-  if (narg != 10) error->all(FLERR,"Incorrect args for bond coefficients");
+  if (narg != 12) error->all(FLERR,"Incorrect args for bond coefficients");
   if (!allocated) allocate();
   
   if (atom->tag_enable==0) {
@@ -184,13 +195,17 @@ void BondHarmonicSwimmerExtended::coeff(int narg, char **arg)
   double r1_one = force->numeric(FLERR,arg[3]);  // position where energy = 0
 
   // swimmer wave parameters A*sin(omega*N + phi - vel_sw*time)
-  double A_one = force->numeric(FLERR,arg[4]);
-  double omega_one = force->numeric(FLERR,arg[5]);
-  double phi_one = force->numeric(FLERR,arg[6]);
-  double vel_sw_one = force->numeric(FLERR,arg[7]);
+  double A_alpha_one = force->numeric(FLERR,arg[4]);
+  double A_beta_one =  force->numeric(FLERR,arg[5]);
 
-  tagint n1_one = force->numeric(FLERR,arg[8]);
-  tagint n2_one = force->numeric(FLERR,arg[9]);
+  double omega_alpha_one = force->numeric(FLERR,arg[6]);
+  double omega_beta_one =  force->numeric(FLERR,arg[7]);
+
+  double phi_one = force->numeric(FLERR,arg[8]);
+  double vel_sw_one = force->numeric(FLERR,arg[9]);
+
+  tagint n1_one = force->numeric(FLERR,arg[10]);
+  tagint n2_one = force->numeric(FLERR,arg[11]);
 
   if (r0_one == r1_one)
     error->all(FLERR,"Bond harmonic/swimmer/extended r0 and r1 must be different");
@@ -201,8 +216,12 @@ void BondHarmonicSwimmerExtended::coeff(int narg, char **arg)
     r0[i] = r0_one;
     r1[i] = r1_one;
 
-    A[i] = A_one;
-    omega[i] = omega_one;
+    A_alpha[i] = A_alpha_one;
+    A_beta[i] =  A_beta_one;
+
+    omega_alpha[i] = omega_alpha_one;
+    omega_beta[i] = omega_beta_one;
+
     phi[i] = phi_one;
     vel_sw[i] = vel_sw_one;
 
