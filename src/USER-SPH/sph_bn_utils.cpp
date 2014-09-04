@@ -5,15 +5,15 @@
 #define MAXLINE 1024
 
 namespace LAMMPS_NS {
-/* ----------------------------------------------------------------------
-   read target field from a user-specified file
-   only called by proc 0
- ------------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------
+     read target field from a user-specified file
+     only called by proc 0
+     ------------------------------------------------------------------------- */
   
   void read_initial_target_field(FILE* fpr,
-				   int nxnodes, int nynodes, int nznodes,
-				   int ***T_initial_set, double ***T_target,
-				   Error *error) {
+				 int nxnodes, int nynodes, int nznodes,
+				 int ***T_initial_set, double ***T_target,
+				 Error *error) {
     char line[MAXLINE];
     
     for (int ixnode = 0; ixnode < nxnodes; ixnode++)
@@ -40,26 +40,29 @@ namespace LAMMPS_NS {
 	    error->one(FLERR,"Initial filed not all set in pair/sph/bn");
     
     // close file
-    
-fclose(fpr);
-};
+    fclose(fpr);
+  };
 
-double get_target_field (double* xi, Domain *&domain, double ***T_target,
+  double get_target_field (double* xi, Domain *&domain, double ***T_target,
 			   int nxnodes, int nynodes, int nznodes) {
-double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
-double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
-double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
-int ixnode = static_cast<int>(xscale*nxnodes);
-int iynode = static_cast<int>(yscale*nynodes);
-int iznode = static_cast<int>(zscale*nznodes);
-while (ixnode > nxnodes-1) ixnode -= nxnodes;
-while (iynode > nynodes-1) iynode -= nynodes;
-while (iznode > nznodes-1) iznode -= nznodes;
-while (ixnode < 0) ixnode += nxnodes;
-while (iynode < 0) iynode += nynodes;
-while (iznode < 0) iznode += nznodes;
+    double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
+    double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
+    double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
+    int ixnode = static_cast<int>(xscale*nxnodes);
+    int iynode = static_cast<int>(yscale*nynodes);
+    int iznode = static_cast<int>(zscale*nznodes);
+    while (ixnode > nxnodes-1) ixnode -= nxnodes;
+    while (iynode > nynodes-1) iynode -= nynodes;
+    while (iznode > nznodes-1) iznode -= nznodes;
+    while (ixnode < 0) ixnode += nxnodes;
+    while (iynode < 0) iynode += nynodes;
+    while (iznode < 0) iznode += nznodes;
+  
+    return T_target[ixnode][iynode][iznode];
+  }
 
-return T_target[ixnode][iynode][iznode];
-}
-
+  double get_target_cutoff (double m, int nn, double rhot) {
+    return sqrt(m*nn/rhot)/sqrt(3.141592653589793);
+  }
+  
 }

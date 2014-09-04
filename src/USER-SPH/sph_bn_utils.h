@@ -24,6 +24,8 @@ namespace  LAMMPS_NS {
 				 Error *error);
   double get_target_field (double* xi, Domain *&domain, double ***T_target,
 			   int nxnodes, int nynodes, int nznodes);
+  
+  double get_target_cutoff (double m, int nn, double rhot);
 };
 
 #endif
