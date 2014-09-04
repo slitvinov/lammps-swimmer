@@ -24,6 +24,7 @@
 #include "domain.h"
 #include "sph_kernel_dispatch.h"
 #include "sph_bn_utils.h"
+#include <algorithm>    // std::max
 
 using namespace LAMMPS_NS;
 
@@ -126,11 +127,14 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
     imass = mass[itype];
 
-    // compute pressure of atom i
     double rho0i = get_target_field(x[i], domain , T_target,
-      nxnodes, nynodes, nznodes);
+				    nxnodes, nynodes, nznodes);
+    double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
+ 		      cut[itype][itype]); 
+    double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
+
     double pi = bn_eos(rho[i], rho0i, B[itype]);
-    fi = pi  / (rho[i] * rho[i]);
+    fi = pi  / (rho[i] * rho[i]) * wfdi;
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -144,13 +148,13 @@ void PairSPHBN::compute(int eflag, int vflag) {
       jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
-	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
-
-        // compute pressure  of atom j
 	double rho0j = get_target_field(x[j], domain , T_target,
 	  nxnodes, nynodes, nznodes);
+	double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j), 
+			       cut[itype][itype]);
+	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
         double pj = bn_eos(rho[j], rho0j, B[jtype]);
-        fj = pj  / (rho[j] * rho[j]);
+        fj = pj  / (rho[j] * rho[j]) * wfdj;
 
         velx=vxtmp - v[j][0];
         vely=vytmp - v[j][1];
@@ -163,10 +167,10 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
         fvisc = 2 * viscosity[itype][jtype] / (rho[i] * rho[j]);
 
-        fvisc *= imass * jmass * wfd;
+        fvisc *= imass * jmass * (wfdi + wfdj) / 2.0;
 
         // total pair force & thermal energy increment
-        fpair = -imass * jmass * (fi + fj) * wfd;
+        fpair = -imass * jmass * (fi + fj);
         deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
        // printf("testvar= %f, %f \n", delx, dely);
@@ -230,17 +234,18 @@ void PairSPHBN::allocate() {
  global settings
  ------------------------------------------------------------------------- */
 void PairSPHBN::settings(int narg, char **arg) {
-  if (narg != 4) error->all(FLERR,"Illegal pair_style pair/sph/bn command"
-			    " (4 arguments required)");
+  if (narg != 5) error->all(FLERR,"Illegal pair_style pair/sph/bn command"
+			    " (5 arguments required)");
 
-  nxnodes = force->inumeric(FLERR,arg[0]);
-  nynodes = force->inumeric(FLERR,arg[1]);
-  nznodes = force->inumeric(FLERR,arg[2]);
+  nneighbors = force->inumeric(FLERR,arg[0]);
+  nxnodes = force->inumeric(FLERR,arg[1]);
+  nynodes = force->inumeric(FLERR,arg[2]);
+  nznodes = force->inumeric(FLERR,arg[3]);
 
-  FILE* fpr = fopen(arg[3],"r");
+  FILE* fpr = fopen(arg[4],"r");
   if (fpr == NULL) {
     char str[128];
-    sprintf(str,"Cannot open file %s",arg[3]);
+    sprintf(str,"Cannot open file %s",arg[4]);
     error->one(FLERR,str);
   }
 
