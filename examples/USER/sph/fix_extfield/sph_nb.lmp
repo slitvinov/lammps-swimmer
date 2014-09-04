@@ -34,7 +34,6 @@ variable        rho0   equal 1
 variable        cutoff equal 1
 variable        soundspeed equal 1
 variable        viscosity  equal 1
-variable        pb         equal 10
 #pair_style      sph/bn  1 2 3 extfield.in
 include         in.bn
 
