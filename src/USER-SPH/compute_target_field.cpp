@@ -29,7 +29,7 @@ using namespace LAMMPS_NS;
 ComputeTargetField::ComputeTargetField(LAMMPS *lmp, int narg, char **arg) :
   Compute(lmp, narg, arg)
 {
-  if (narg != 7) error->all(FLERR,"Wrong number of arguments for compute target/field command");
+  if (narg != 8) error->all(FLERR,"Wrong number of arguments for compute target/field command");
 
   nxnodes = force->inumeric(FLERR,arg[3]);
   nynodes = force->inumeric(FLERR,arg[4]);
@@ -41,6 +41,7 @@ ComputeTargetField::ComputeTargetField(LAMMPS *lmp, int narg, char **arg) :
     sprintf(str,"Cannot open file %s",arg[6]);
     error->one(FLERR,str);
   }
+  int ntime_smooth = force->inumeric(FLERR,arg[7]);
 
   if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
     error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
@@ -106,7 +107,8 @@ void ComputeTargetField::compute_peratom()
   for (int i = 0; i < nlocal; i++) {
     if (mask[i] & groupbit) {
       evector[i] = get_target_field(x[i], domain , T_target,
-				    nxnodes, nynodes, nznodes);
+				    nxnodes, nynodes, nznodes,
+				    ntime_smooth,     update->nsteps);
     }
     else {
       evector[i] = 0.0;

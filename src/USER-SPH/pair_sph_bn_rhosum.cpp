@@ -133,7 +133,8 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
         itype = type[i];
         imass = mass[itype];
 	double rho0i = get_target_field(x[i], domain , T_target,
-					nxnodes, nynodes, nznodes);
+					nxnodes, nynodes, nznodes,
+					ntime_smooth,     update->ntimestep);
 	double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
 			       cut[itype][itype]); 
 	wf = ker[itype][itype]->w(0.0, cuti);
@@ -163,7 +164,8 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
 
           if (rsq < cutsq[itype][jtype]) {
 	    double rho0j = get_target_field(x[j], domain , T_target,
-					    nxnodes, nynodes, nznodes);
+					    nxnodes, nynodes, nznodes,
+					    ntime_smooth,     update->ntimestep);
 	    double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j),
 				   cut[itype][itype]); 
 	    wf = ker[itype][jtype]->w(sqrt(rsq), cutj);
@@ -209,7 +211,7 @@ void PairSPHBNRhoSum::allocate() {
  ------------------------------------------------------------------------- */
 
 void PairSPHBNRhoSum::settings(int narg, char **arg) {
-  if (narg != 6)
+  if (narg != 7)
     error->all(FLERR,
         "Illegal number of setting arguments for pair_style sph/bn/rhosum");
   nstep = force->inumeric(FLERR,arg[0]);
@@ -227,7 +229,8 @@ void PairSPHBNRhoSum::settings(int narg, char **arg) {
 
   if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
     error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
-
+  
+  ntime_smooth = force->inumeric(FLERR,arg[6]);
 
   // allocate 3d grid variables
   total_nnodes = nxnodes*nynodes*nznodes;

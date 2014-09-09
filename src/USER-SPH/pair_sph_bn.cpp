@@ -22,6 +22,7 @@
 #include "memory.h"
 #include "error.h"
 #include "domain.h"
+#include "update.h"
 #include "sph_kernel_dispatch.h"
 #include "sph_bn_utils.h"
 #include <algorithm>    // std::max
@@ -128,7 +129,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     double rho0i = get_target_field(x[i], domain , T_target,
-				    nxnodes, nynodes, nznodes);
+				    nxnodes, nynodes, nznodes,
+				    ntime_smooth, update->nsteps);
     double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
  		      cut[itype][itype]); 
     double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
@@ -149,7 +151,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
       if (rsq < cutsq[itype][jtype]) {
 	double rho0j = get_target_field(x[j], domain , T_target,
-	  nxnodes, nynodes, nznodes);
+					nxnodes, nynodes, nznodes,
+					ntime_smooth, update->nsteps);
 	double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j), 
 			       cut[itype][itype]);
 	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
@@ -234,7 +237,7 @@ void PairSPHBN::allocate() {
  global settings
  ------------------------------------------------------------------------- */
 void PairSPHBN::settings(int narg, char **arg) {
-  if (narg != 5) error->all(FLERR,"Illegal pair_style pair/sph/bn command"
+  if (narg != 6) error->all(FLERR,"Illegal pair_style pair/sph/bn command"
 			    " (5 arguments required)");
 
   nneighbors = force->inumeric(FLERR,arg[0]);
@@ -252,6 +255,7 @@ void PairSPHBN::settings(int narg, char **arg) {
   if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
     error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
 
+  ntime_smooth = force->inumeric(FLERR,arg[5]);
 
   // allocate 3d grid variables
   total_nnodes = nxnodes*nynodes*nznodes;
@@ -340,5 +344,5 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
-    return B  * rho / rho0;
+  return B  * (rho / rho0);
 }

@@ -44,7 +44,8 @@ namespace LAMMPS_NS {
   };
 
   double get_target_field (double* xi, Domain *&domain, double ***T_target,
-			   int nxnodes, int nynodes, int nznodes) {
+			   int nxnodes, int nynodes, int nznodes, 
+			   int ntime_smooth, bigint ntimestep) {
     double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
     double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
     double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
@@ -57,8 +58,14 @@ namespace LAMMPS_NS {
     while (ixnode < 0) ixnode += nxnodes;
     while (iynode < 0) iynode += nynodes;
     while (iznode < 0) iznode += nznodes;
-  
-    return T_target[ixnode][iynode][iznode];
+
+    double Tfin = T_target[ixnode][iynode][iznode];
+    if (ntimestep>ntime_smooth) {
+      return Tfin;
+    }
+    double Tr  = (1.0*(ntime_smooth-ntimestep) + Tfin*ntimestep)
+      /static_cast<double>(ntime_smooth);
+    return Tr;
   }
 
   double get_target_cutoff (double m, int nn, double rhot) {

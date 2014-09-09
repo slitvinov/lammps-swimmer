@@ -43,6 +43,8 @@ class PairSPHBN : public Pair {
   int me;
   int nneighbors;
   int nxnodes,nynodes,nznodes,total_nnodes;
+  int ntime_smooth;
+
   int ***T_initial_set;
   double ***T_target;
 

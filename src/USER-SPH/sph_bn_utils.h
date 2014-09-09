@@ -23,7 +23,8 @@ namespace  LAMMPS_NS {
 				 int ***T_initial_set, double ***T_target,
 				 Error *error);
   double get_target_field (double* xi, Domain *&domain, double ***T_target,
-			   int nxnodes, int nynodes, int nznodes);
+			   int nxnodes, int nynodes, int nznodes, 
+			   int ntime_smooth, bigint ntimestep);
   
   double get_target_cutoff (double m, int nn, double rhot);
 };

@@ -40,6 +40,7 @@ class PairSPHBNRhoSum : public Pair {
  protected:
   double **cut;
   int nstep, first;
+  int ntime_smooth;
 
   int me;
   int nneighbors;
