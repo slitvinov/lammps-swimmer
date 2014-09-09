@@ -29,6 +29,12 @@ namespace LAMMPS_NS {
     else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==3) ) {
       return new SPHKernelQuintic3D();
     }
+    else if ( (strcmp(kernel_name, "wendland4")==0) && (kernel_dimension==2) ) {
+      return new SPHKernelQuintic2D();
+    }
+    //    else if ( (strcmp(kernel_name, "wendland4")==0) && (kernel_dimension==3) ) {
+    //      return new SPHKernelQuintic3D();
+    //    }
     else {
       char str[128];
       sprintf(str, "Unknown kernel type and/or dimension: %s and %i", kernel_name , kernel_dimension);
