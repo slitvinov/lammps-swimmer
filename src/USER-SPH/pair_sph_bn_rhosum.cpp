@@ -27,6 +27,8 @@
 #include "domain.h"
 #include "sph_kernel_dispatch.h"
 #include "sph_kernel.h"
+#include "sph_bn_utils.h"
+#include <algorithm>    // std::max
 
 using namespace LAMMPS_NS;
 
@@ -58,6 +60,8 @@ PairSPHBNRhoSum::~PairSPHBNRhoSum() {
     }
     delete[] ker;
 
+    memory->destroy(T_initial_set);
+    memory->destroy(T_target);
   }
 }
 
@@ -128,7 +132,11 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
         i = ilist[ii];
         itype = type[i];
         imass = mass[itype];
-	wf = ker[itype][itype]->w(0.0, cut[itype][itype]);
+	double rho0i = get_target_field(x[i], domain , T_target,
+					nxnodes, nynodes, nznodes);
+	double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
+			       cut[itype][itype]); 
+	wf = ker[itype][itype]->w(0.0, cuti);
         rho[i] = imass * wf;
       }
 
@@ -147,13 +155,18 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
           j &= NEIGHMASK;
 
           jtype = type[j];
+	  double jmass = mass[itype];
           delx = xtmp - x[j][0];
           dely = ytmp - x[j][1];
           delz = ztmp - x[j][2];
           rsq = delx * delx + dely * dely + delz * delz;
 
           if (rsq < cutsq[itype][jtype]) {
-	    wf = ker[itype][jtype]->w(sqrt(rsq), cut[itype][jtype]);
+	    double rho0j = get_target_field(x[j], domain , T_target,
+					    nxnodes, nynodes, nznodes);
+	    double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j),
+				   cut[itype][itype]); 
+	    wf = ker[itype][jtype]->w(sqrt(rsq), cutj);
 
             rho[i] += mass[jtype] * wf;
           }
@@ -196,10 +209,37 @@ void PairSPHBNRhoSum::allocate() {
  ------------------------------------------------------------------------- */
 
 void PairSPHBNRhoSum::settings(int narg, char **arg) {
-  if (narg != 1)
+  if (narg != 6)
     error->all(FLERR,
         "Illegal number of setting arguments for pair_style sph/bn/rhosum");
   nstep = force->inumeric(FLERR,arg[0]);
+  nneighbors = force->inumeric(FLERR,arg[1]);
+  nxnodes = force->inumeric(FLERR,arg[2]);
+  nynodes = force->inumeric(FLERR,arg[3]);
+  nznodes = force->inumeric(FLERR,arg[4]);
+
+  FILE* fpr = fopen(arg[5],"r");
+  if (fpr == NULL) {
+    char str[128];
+    sprintf(str,"Cannot open file %s",arg[5]);
+    error->one(FLERR,str);
+  }
+
+  if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
+    error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
+
+
+  // allocate 3d grid variables
+  total_nnodes = nxnodes*nynodes*nznodes;
+
+  memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
+  memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
+
+  // set target field from input file
+  MPI_Comm_rank(world,&me);
+  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
+					 T_initial_set, T_target, error);
+  MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
 }
 
 /* ----------------------------------------------------------------------

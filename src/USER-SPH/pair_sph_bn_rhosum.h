@@ -40,6 +40,13 @@ class PairSPHBNRhoSum : public Pair {
  protected:
   double **cut;
   int nstep, first;
+
+  int me;
+  int nneighbors;
+  int nxnodes,nynodes,nznodes,total_nnodes;
+  int ***T_initial_set;
+  double ***T_target;
+
   pSPHKernel  **ker;
 
   void allocate();
