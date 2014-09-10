@@ -28,7 +28,7 @@ using namespace LAMMPS_NS;
 
 #define DELTA 10000
 
-enum{DIST,ENG,FORCE};
+enum{DIST,ENG,FORCE,POWER};
 
 /* ---------------------------------------------------------------------- */
 
@@ -52,6 +52,7 @@ ComputeBondLocalExtended::ComputeBondLocalExtended(LAMMPS *lmp, int narg, char *
     if (strcmp(arg[iarg],"dist") == 0) bstyle[nvalues++] = DIST;
     else if (strcmp(arg[iarg],"eng") == 0) bstyle[nvalues++] = ENG;
     else if (strcmp(arg[iarg],"force") == 0) bstyle[nvalues++] = FORCE;
+    else if (strcmp(arg[iarg],"power") == 0) bstyle[nvalues++] = POWER;
     else error->all(FLERR,"Invalid keyword in compute bond/local/extended command");
   }
 
@@ -120,13 +121,22 @@ int ComputeBondLocalExtended::compute_bonds(int flag)
   tagint tagprev;
   double delx,dely,delz,rsq;
   double *ptr;
+  double dtfm1, dtfm2;
 
   double **x = atom->x;
+  double **fb = atom->fb;
+  double **v = atom->v;
   tagint *tag = atom->tag;
   int *num_bond = atom->num_bond;
   tagint **bond_atom = atom->bond_atom;
   int **bond_type = atom->bond_type;
+  int *type = atom->type;
   int *mask = atom->mask;
+
+  double *mass = atom->mass;
+  double *rmass = atom->rmass;
+  int rmass_flag = atom->rmass_flag;
+  double dtf = 0.5 * update->dt * force->ftm2v;
 
   int *molindex = atom->molindex;
   int *molatom = atom->molatom;
@@ -191,6 +201,40 @@ int ComputeBondLocalExtended::compute_bonds(int flag)
             break;
           case FORCE:
             ptr[n] = sqrt(rsq)*fbond;
+            break;
+          case POWER:
+	    double vtmp1[3];
+	    double vtmp2[3];
+	    if (atom->fb_flag==1) { 
+	      if (rmass_flag) {
+		dtfm1 = dtf / rmass[atom1];
+		dtfm2 = dtf / rmass[atom2];
+	      } else {
+		dtfm1 = dtf / mass[type[atom1]];
+		dtfm2 = dtf / mass[type[atom2]];
+	      }
+	      vtmp1[0] = v[atom1][0] + dtfm1 * fb[atom1][0];
+              vtmp1[1] = v[atom1][1] + dtfm1 * fb[atom1][1];
+              vtmp1[2] = v[atom1][2] + dtfm1 * fb[atom1][2];
+	      
+	      vtmp2[0] = v[atom2][0] + dtfm2 * fb[atom2][0];
+	      vtmp2[1] = v[atom2][1] + dtfm2 * fb[atom2][1];
+	      vtmp2[2] = v[atom2][2] + dtfm2 * fb[atom2][2];
+
+	    } else {
+	      vtmp1[0] = v[atom1][0];
+              vtmp1[1] = v[atom1][1];
+              vtmp1[2] = v[atom1][2];
+	      
+	      vtmp2[0] = v[atom2][0];
+              vtmp2[1] = v[atom2][1];
+              vtmp2[2] = v[atom2][2];
+	    }
+	    
+	    double dvx = vtmp1[0] - vtmp2[0];
+	    double dvy = vtmp1[1] - vtmp2[1];
+	    double dvz = vtmp1[2] - vtmp2[2];
+            ptr[n] = (delz*dvz+dely*dvy+delx*dvx)*fbond;
             break;
           }
         }
