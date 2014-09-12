@@ -43,7 +43,6 @@ BondHarmonicSwimmerExtendedK::~BondHarmonicSwimmerExtendedK()
 {
   if (allocated) {
     memory->destroy(setflag);
-    memory->destroy(k);
     memory->destroy(k_alpha);
     memory->destroy(k_beta);
     memory->destroy(r0);
@@ -124,9 +123,9 @@ void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
     dr = r - r0_local;
 
     double dn = static_cast<double>(tag1) - n1[type];
-    k[type] = k_beta[type]*dn + k_alpha[type];
+    double k= k_beta[type]*dn + k_alpha[type];
     
-    rk = k[type] * dr;
+    rk = k*dr;
 
     // force & energy
 
@@ -134,7 +133,7 @@ void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
     else fbond = 0.0;
 
     if (eflag)
-      ebond = k[type]*(dr*dr -(r0_local-r1[type])*(r0_local-r1[type]) );
+      ebond = k*(dr*dr -(r0_local-r1[type])*(r0_local-r1[type]) );
 
     // apply force to each of 2 atoms
 
@@ -161,7 +160,6 @@ void BondHarmonicSwimmerExtendedK::allocate()
   allocated = 1;
   int n = atom->nbondtypes;
 
-  memory->create(k ,    n+1,"bond:k");
   memory->create(k_alpha ,    n+1,"bond:k_alpha");
   memory->create(k_beta ,    n+1,"bond:k_beta");
 
@@ -227,7 +225,6 @@ void BondHarmonicSwimmerExtendedK::coeff(int narg, char **arg)
    
     k_alpha[i] = Umin/((r0_one-r1_one)*(r0_one-r1_one));
     k_beta[i] = k_beta_one;
-    /*k[i] = k_one;*/
     r0[i] = r0_one;
     r1[i] = r1_one;
 
@@ -311,6 +308,6 @@ double BondHarmonicSwimmerExtendedK::single(int type, double rsq, int i, int j,
   double dr = r - r0[type];
   double dr2=r0[type]-r1[type];
 
-  fforce =  -2.0*k[type]*dr/r;
-  return k[type]*(dr*dr - dr2*dr2);
+  fforce =  -2.0*k_alpha[type]*dr/r;
+  return k_alpha[type]*(dr*dr - dr2*dr2);
 }

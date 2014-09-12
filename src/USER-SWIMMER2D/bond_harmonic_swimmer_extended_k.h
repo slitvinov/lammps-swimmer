@@ -38,7 +38,7 @@ class BondHarmonicSwimmerExtendedK : public Bond {
   double single(int, double, int, int, double &);
 
  protected:
-  double *k, *k_alpha, *k_beta, *r0,*r1;
+  double *k_alpha, *k_beta, *r0,*r1;
   double *A_alpha, *A_beta, *omega_alpha, *omega_beta, *phi, *vel_sw;
   tagint *n1, *n2;
 
