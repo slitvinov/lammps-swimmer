@@ -20,6 +20,8 @@
 #include "comm.h"
 #include "neigh_list.h"
 #include "memory.h"
+#include "update.h"
+#include "random_mars.h"
 #include "error.h"
 #include "domain.h"
 #include "sph_kernel_dispatch.h"
@@ -30,6 +32,7 @@ using namespace LAMMPS_NS;
 
 PairSPHAdamiSDPD::PairSPHAdamiSDPD(LAMMPS *lmp) : Pair(lmp)
 {
+  random = NULL;
   restartinfo = 0;
   first = 1;
 }
@@ -47,6 +50,7 @@ PairSPHAdamiSDPD::~PairSPHAdamiSDPD() {
     memory->destroy(B);
     memory->destroy(viscosity);
     memory->destroy(pb);
+    memory->destroy(temperature);
 
     int n = atom->ntypes;
     for (int i=0; i<=n; ++i) {
@@ -140,7 +144,8 @@ void PairSPHAdamiSDPD::compute(int eflag, int vflag) {
       jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
-	wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
+	double rabs = sqrt(rsq);
+	wfd = ker[itype][jtype]->dw_per_r(rabs, cut[itype][jtype]);
 	double Vj  = jmass/rho[j];
 	double Vj2 = Vj * Vj;
 
@@ -162,13 +167,40 @@ void PairSPHAdamiSDPD::compute(int eflag, int vflag) {
         double fpair =   - (Vi2 + Vj2) * pij_wave * wfd;
 	double fpair_b = - (Vi2 + Vj2) * pij_b    * wfd;
 
+	double frx, fry, frz, krnd;
+	double dt = update->dt;
+	krnd = 2*sqrt(Vj2+Vi2)
+	  *sqrt(force->boltz*viscosity[itype][jtype]*temperature[itype][jtype]*abs(wfd))
+	  /(sqrt(dt)*rabs);
+	if (domain->dimension == 3) {
+	  double W11, W12, W13;
+	  double W21, W22, W23;
+	  double W31, W32, W33;
+	  W11 = random->gaussian();  W12 = random->gaussian(); W13 = random->gaussian();
+	  W21 = random->gaussian();  W22 = random->gaussian(); W23 = random->gaussian();
+	  W31 = random->gaussian();  W32 = random->gaussian(); W33 = random->gaussian();
+	  //	  W11 = 1*1;  W12 = 1*2; W13 = 1*3;
+	  //	  W21 = 2*1;  W22 = 2*2; W23 = 2*3;
+	  //	  W31 = 3*1;  W32 = 3*2; W33 = 3*3;
+
+	  frx = krnd*(delx*(W11-(W33+W22+W11)/3.0)+delz*(W31+W13)/2.0+dely*(W21+W12)/2.0);
+	  fry = krnd*(dely*(W22-(W33+W22+W11)/3.0)+delz*(W32+W23)/2.0+delx*(W21+W12)/2.0);
+	  frz = krnd*(delz*(W33-(W33+W22+W11)/3.0)+dely*(W32+W23)/2.0+delx*(W31+W13)/2.0);
+	} else {
+	  double W11, W12, W21, W22;
+	  W11 = random->gaussian();  W12 = random->gaussian();
+	  W21 = random->gaussian();  W22 = random->gaussian();
+	  frx = krnd*(delx*(W11-(W22+W11)/2.0)+dely*(W21+W12)/2.0);
+	  fry = krnd*(dely*(W22-(W22+W11)/2.0)+delx*(W21+W12)/2.0);
+	  frz = 0.0;
+	}
+
         deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
-       // printf("testvar= %f, %f \n", delx, dely);
-
-        f[i][0] += delx * fpair + velx * fvisc;
-        f[i][1] += dely * fpair + vely * fvisc;
-        f[i][2] += delz * fpair + velz * fvisc;
+	// printf("testvar= %f, %f \n", delx, dely);
+        f[i][0] += delx * fpair + velx * fvisc + frx;
+        f[i][1] += dely * fpair + vely * fvisc + fry;
+        f[i][2] += delz * fpair + velz * fvisc + frz;
 
 	// change in background pressure
         fb[i][0] += delx * fpair_b;
@@ -182,9 +214,9 @@ void PairSPHAdamiSDPD::compute(int eflag, int vflag) {
         de[i] += deltaE;
 
         if (newton_pair || j < nlocal) {
-          f[j][0] -= delx * fpair + velx * fvisc;
-          f[j][1] -= dely * fpair + vely * fvisc;
-          f[j][2] -= delz * fpair + velz * fvisc;
+          f[j][0] -= delx * fpair + velx * fvisc + frx;
+          f[j][1] -= dely * fpair + vely * fvisc + fry;
+          f[j][2] -= delz * fpair + velz * fvisc + frz;
 
 	  fb[j][0] -= delx * fpair_b;
 	  fb[j][1] -= dely * fpair_b;
@@ -217,6 +249,7 @@ void PairSPHAdamiSDPD::allocate() {
       setflag[i][j] = 0;
 
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
+  memory->create(temperature, n + 1, n + 1, "pair:temperature");
 
   memory->create(rho0, n + 1, "pair:rho0");
   memory->create(soundspeed, n + 1, "pair:soundspeed");
@@ -238,9 +271,16 @@ void PairSPHAdamiSDPD::allocate() {
  ------------------------------------------------------------------------- */
 
 void PairSPHAdamiSDPD::settings(int narg, char **arg) {
-  if (narg != 0)
+  if (narg != 1)
     error->all(FLERR,
-        "Illegal number of setting arguments for pair_style sph/adami");
+        "Illegal number of setting arguments for pair_style sph/adami/sdpd");
+
+  seed = force->inumeric(FLERR,arg[0]);
+  
+  if (seed <= 0) error->all(FLERR,"Illegal pair_style command (seed <= 0)");
+  delete random;
+
+  random = new RanMars(lmp,seed + comm->me);
 }
 
 /* ----------------------------------------------------------------------
@@ -248,7 +288,7 @@ void PairSPHAdamiSDPD::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHAdamiSDPD::coeff(int narg, char **arg) {
-  if (narg != 8)
+  if (narg != 9)
     error->all(FLERR,
         "Incorrect args for pair_style sph/adami coefficients");
   if (!allocated)
@@ -268,7 +308,9 @@ void PairSPHAdamiSDPD::coeff(int narg, char **arg) {
   double soundspeed_one = force->numeric(FLERR,arg[4]);
   double viscosity_one = force->numeric(FLERR,arg[5]);
   double pb_one = force->numeric(FLERR,arg[6]);
-  double cut_one = force->numeric(FLERR,arg[7]);
+  double temperature_one = force->numeric(FLERR,arg[7]);
+  double cut_one = force->numeric(FLERR,arg[8]);
+
   double B_one = soundspeed_one * soundspeed_one * rho0_one ;
 
   int count = 0;
@@ -280,7 +322,7 @@ void PairSPHAdamiSDPD::coeff(int narg, char **arg) {
 
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       viscosity[i][j] = viscosity_one;
-      //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
+      temperature[i][j] = temperature_one;
       cut[i][j] = cut_one;
 
       ker[i][j] = sph_kernel_dispatch(kernel_name_one, domain->dimension, error);
@@ -307,6 +349,7 @@ double PairSPHAdamiSDPD::init_one(int i, int j) {
   }
 
   cut[j][i] = cut[i][j];
+  temperature[j][i] = temperature[i][j];
   viscosity[j][i] = viscosity[i][j];
 
   return cut[i][j];

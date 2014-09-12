@@ -13,7 +13,7 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(sph/adami/sdpd,PairSPHAdamiSDPDSDPD)
+PairStyle(sph/adami/sdpd,PairSPHAdamiSDPD)
 
 #else
 
@@ -39,7 +39,11 @@ class PairSPHAdamiSDPD : public Pair {
   double *rho0, *soundspeed, *B;
   double **cut,**viscosity;
   double *pb;
+  double **temperature;
   int first;
+
+  int    seed;
+  class RanMars *random;
 
   pSPHKernel  **ker;
   void allocate();
