@@ -262,7 +262,7 @@ double BondHarmonicSwimmerExtendedK::equilibrium_distance(int i)
 
 void BondHarmonicSwimmerExtendedK::write_restart(FILE *fp)
 {
-  fwrite(&k[1],sizeof(double),atom->nbondtypes,fp);
+  fwrite(&k_alpha[1],sizeof(double),atom->nbondtypes,fp);
   fwrite(&r0[1],sizeof(double),atom->nbondtypes,fp);
   fwrite(&r1[1],sizeof(double),atom->nbondtypes,fp);
 }
@@ -276,11 +276,11 @@ void BondHarmonicSwimmerExtendedK::read_restart(FILE *fp)
   allocate();
 
   if (comm->me == 0) {
-    fread(&k[1],sizeof(double),atom->nbondtypes,fp);
+    fread(&k_alpha[1],sizeof(double),atom->nbondtypes,fp);
     fread(&r0[1],sizeof(double),atom->nbondtypes,fp);
     fread(&r1[1],sizeof(double),atom->nbondtypes,fp);
   }
-  MPI_Bcast(&k[1],atom->nbondtypes,MPI_DOUBLE,0,world);
+  MPI_Bcast(&k_alpha[1],atom->nbondtypes,MPI_DOUBLE,0,world);
   MPI_Bcast(&r0[1],atom->nbondtypes,MPI_DOUBLE,0,world);
   MPI_Bcast(&r1[1],atom->nbondtypes,MPI_DOUBLE,0,world);
 
@@ -295,7 +295,7 @@ void BondHarmonicSwimmerExtendedK::write_data(FILE *fp)
 {
   for (int i = 1; i <= atom->nbondtypes; i++) {
     double d2 = (r0[i]-r1[i])*(r0[i]-r1[i]);
-    fprintf(fp,"%d %g %g %g\n",i,k[i]*d2,r0[i],r1[i]);
+    fprintf(fp,"%d %g %g %g\n",i,k_alpha[i]*d2,r0[i],r1[i]);
   }
 }
 
