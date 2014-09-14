@@ -62,6 +62,35 @@ BondHarmonicSwimmerExtendedK::~BondHarmonicSwimmerExtendedK()
   }
 }
 
+/* helper function to calculate force in energy */
+void   BondHarmonicSwimmerExtendedK::uf_calculate(int type, int tag1, int tag2,
+						  double r, double delta,
+						  int eflag, double &u, double &f) {
+  double r0_local;
+  if ( (tag1>=n1[type]) && (tag1<=n2[type]) && ((tag2-tag1)==1) ) {
+    double dn = static_cast<double>(tag1) - n1[type];
+    double omega = omega_beta[type]*dn + omega_alpha[type];
+    double A     = A_beta[type]*dn     + A_alpha[type];
+    double s_aux = sin(omega*dn + phi[type] - vel_sw[type]*delta);
+    r0_local = r0[type] + A*s_aux ;
+  } else {
+    r0_local = r0[type];
+  }
+  
+  double dr = r - r0_local;
+  double dn = static_cast<double>(tag1) - n1[type];
+  double k = k_beta[type]*dn + k_alpha[type];
+  
+  double rk = k*dr;
+  
+  // force & energy
+  if (r > 0.0) f = -2.0*rk/r;
+  else f = 0.0;
+  
+  if (eflag)
+    u = k*(dr*dr -(r0_local-r1[type])*(r0_local-r1[type]) );
+}
+
 /* ---------------------------------------------------------------------- */
 
 void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
@@ -70,7 +99,6 @@ void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
   tagint tag1, tag2;
   double delx,dely,delz,ebond,fbond;
   double rsq,r,dr,rk;
-  double r0_local;
 
   ebond = 0.0;
   if (eflag || vflag) ev_setup(eflag,vflag);
@@ -107,33 +135,7 @@ void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
 
     rsq = delx*delx + dely*dely + delz*delz;
     r = sqrt(rsq);
-
-
-    if ( (tag1>=n1[type]) && (tag1<=n2[type]) && ((tag2-tag1)==1) ) {
-     
-      double dn = static_cast<double>(tag1) - n1[type];
-      double omega = omega_beta[type]*dn + omega_alpha[type];
-      double A     = A_beta[type]*dn     + A_alpha[type];
-      double s_aux = sin(omega*dn + phi[type] - vel_sw[type]*delta);
-      r0_local = r0[type] + A*s_aux ;
-    } else {
-       r0_local = r0[type];
-    }
-
-    dr = r - r0_local;
-
-    double dn = static_cast<double>(tag1) - n1[type];
-    double k= k_beta[type]*dn + k_alpha[type];
-    
-    rk = k*dr;
-
-    // force & energy
-
-    if (r > 0.0) fbond = -2.0*rk/r;
-    else fbond = 0.0;
-
-    if (eflag)
-      ebond = k*(dr*dr -(r0_local-r1[type])*(r0_local-r1[type]) );
+    uf_calculate(type, tag1, tag2, r, delta, eflag, ebond, fbond);
 
     // apply force to each of 2 atoms
 
@@ -301,13 +303,24 @@ void BondHarmonicSwimmerExtendedK::write_data(FILE *fp)
 
 /* ---------------------------------------------------------------------- */
 
-double BondHarmonicSwimmerExtendedK::single(int type, double rsq, int i, int j,
+double BondHarmonicSwimmerExtendedK::single(int type, double rsq, int i1, int i2,
 				 double &fforce)
 {
-  double r = sqrt(rsq);
-  double dr = r - r0[type];
-  double dr2=r0[type]-r1[type];
+  double ebond;
+  tagint *tag = atom->tag;
+  double delta = (update->ntimestep - time_origin) * update->dt;
 
-  fforce =  -2.0*k_alpha[type]*dr/r;
-  return k_alpha[type]*(dr*dr - dr2*dr2);
+  double r = sqrt(rsq);
+  tagint tag1 = tag[i1];
+  tagint tag2 = tag[i2];
+
+  if (tag1>=tag2) {
+    char str[128];
+    sprintf(str,"tag1>=tag2: something wrong with a bond between %i and %i", i1, i2);
+    error->all(FLERR, str);
+  }
+ 
+  int eflag = 1;
+  uf_calculate(type, tag1, tag2, r, delta, eflag, ebond, fforce);
+  return ebond;
 }

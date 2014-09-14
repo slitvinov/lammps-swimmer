@@ -37,6 +37,7 @@ class BondHarmonicSwimmerExtendedK : public Bond {
   void write_data(FILE *);
   double single(int, double, int, int, double &);
 
+
  protected:
   double *k_alpha, *k_beta, *r0,*r1;
   double *A_alpha, *A_beta, *omega_alpha, *omega_beta, *phi, *vel_sw;
@@ -45,6 +46,11 @@ class BondHarmonicSwimmerExtendedK : public Bond {
   bigint time_origin;
 
   void allocate();
+
+  /* helper function to calculate force in energy */
+  void   uf_calculate(int type, int tag1, int tag2,
+		      double r, double delta,
+		      int eflag, double &u, double &f);
 };
 
 }
