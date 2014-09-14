@@ -72,6 +72,7 @@ class AtomVecMesoTrans : public AtomVec {
   double *rho, *drho, *e, *de, *cv;
   double **fb; // background pressure force for transport velocity SPH
 	       // formulation (see doi:10.1016/j.jcp.2013.01.043)
+  double **vt;
 };
 
 }

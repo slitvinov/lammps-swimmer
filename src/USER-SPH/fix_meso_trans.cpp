@@ -83,6 +83,7 @@ void FixMesoTrans::initial_integrate(int vflag) {
   double *e = atom->e;
   double *de = atom->de;
   double **fb = atom->fb;
+  double **vt = atom->vt;
   double *mass = atom->mass;
   double *rmass = atom->rmass;
   int rmass_flag = atom->rmass_flag;
@@ -111,9 +112,13 @@ void FixMesoTrans::initial_integrate(int vflag) {
       v[i][1] += dtfm * f[i][1];
       v[i][2] += dtfm * f[i][2];
 
-      x[i][0] += dtv * v[i][0] + dtv * dtfm * fb[i][0];
-      x[i][1] += dtv * v[i][1] + dtv * dtfm * fb[i][1];
-      x[i][2] += dtv * v[i][2] + dtv * dtfm * fb[i][2];
+      vt[i][0] = v[i][0] + dtfm * fb[i][0];
+      vt[i][1] = v[i][1] + dtfm * fb[i][1];
+      vt[i][2] = v[i][2] + dtfm * fb[i][2];
+
+      x[i][0] += dtv * vt[i][0];
+      x[i][1] += dtv * vt[i][1];
+      x[i][2] += dtv * vt[i][2];
     }
   }
 }
