@@ -117,27 +117,19 @@ void ComputeBondLocalExtended::compute_local()
 
 int ComputeBondLocalExtended::compute_bonds(int flag)
 {
-  int i,m,n,nb,atom1,atom2,imol,iatom,btype;
+  int i,nb,atom1,atom2,imol,iatom,btype;
   tagint tagprev;
   double delx,dely,delz,rsq;
   double *ptr;
-  double dtfm1, dtfm2;
 
   double **x = atom->x;
-  double **fb = atom->fb;
   double **v = atom->v;
+  double **vt = atom->vt;
   tagint *tag = atom->tag;
   int *num_bond = atom->num_bond;
   tagint **bond_atom = atom->bond_atom;
   int **bond_type = atom->bond_type;
-  int *type = atom->type;
   int *mask = atom->mask;
-
-  double *mass = atom->mass;
-  double *rmass = atom->rmass;
-  int rmass_flag = atom->rmass_flag;
-  double dtf = 0.5 * update->dt * force->ftm2v;
-
   int *molindex = atom->molindex;
   int *molatom = atom->molatom;
   Molecule **onemols = atom->avec->onemols;
@@ -149,7 +141,7 @@ int ComputeBondLocalExtended::compute_bonds(int flag)
   Bond *bond = force->bond;
   double eng,fbond;
 
-  m = n = 0;
+  int m = 0;
   for (atom1 = 0; atom1 < nlocal; atom1++) {
     if (!(mask[atom1] & groupbit)) continue;
 
@@ -191,7 +183,7 @@ int ComputeBondLocalExtended::compute_bonds(int flag)
         if (nvalues == 1) ptr = &vector[m];
         else ptr = array[m];
 
-        for (n = 0; n < nvalues; n++) {
+        for (int n = 0; n < nvalues; n++) {
           switch (bstyle[n]) {
           case DIST:
             ptr[n] = sqrt(rsq);
@@ -205,38 +197,30 @@ int ComputeBondLocalExtended::compute_bonds(int flag)
           case POWER:
 	    double vtmp1[3];
 	    double vtmp2[3];
-	    if (atom->fb_flag==1) { 
-	      if (rmass_flag) {
-		dtfm1 = dtf / rmass[atom1];
-		dtfm2 = dtf / rmass[atom2];
-	      } else {
-		dtfm1 = dtf / mass[type[atom1]];
-		dtfm2 = dtf / mass[type[atom2]];
-	      }
-	      vtmp1[0] = v[atom1][0] + dtfm1 * fb[atom1][0];
-              vtmp1[1] = v[atom1][1] + dtfm1 * fb[atom1][1];
-              vtmp1[2] = v[atom1][2] + dtfm1 * fb[atom1][2];
+	    if (atom->vt_flag==1) { 
+	      vtmp1[0] = vt[atom1][0];
+	      vtmp1[1] = vt[atom1][1];
+	      vtmp1[2] = vt[atom1][2];
 	      
-	      vtmp2[0] = v[atom2][0] + dtfm2 * fb[atom2][0];
-	      vtmp2[1] = v[atom2][1] + dtfm2 * fb[atom2][1];
-	      vtmp2[2] = v[atom2][2] + dtfm2 * fb[atom2][2];
-
+	      vtmp2[0] = vt[atom2][0];
+	      vtmp2[1] = vt[atom2][1];
+	      vtmp2[2] = vt[atom2][2];
 	    } else {
 	      vtmp1[0] = v[atom1][0];
-              vtmp1[1] = v[atom1][1];
-              vtmp1[2] = v[atom1][2];
+	      vtmp1[1] = v[atom1][1];
+	      vtmp1[2] = v[atom1][2];
 	      
 	      vtmp2[0] = v[atom2][0];
-              vtmp2[1] = v[atom2][1];
-              vtmp2[2] = v[atom2][2];
+	      vtmp2[1] = v[atom2][1];
+	      vtmp2[2] = v[atom2][2];
 	    }
 	    
 	    double dvx = vtmp1[0] - vtmp2[0];
 	    double dvy = vtmp1[1] - vtmp2[1];
 	    double dvz = vtmp1[2] - vtmp2[2];
-            ptr[n] = (delz*dvz+dely*dvy+delx*dvx)*fbond;
-            break;
-          }
+	    ptr[n] = (delz*dvz+dely*dvy+delx*dvx)*fbond;
+	    break;
+	  }
         }
       }
 
