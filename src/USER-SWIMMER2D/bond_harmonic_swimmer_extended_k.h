@@ -47,7 +47,7 @@ class BondHarmonicSwimmerExtendedK : public Bond {
 
   void allocate();
 
-  /* helper function to calculate force in energy */
+/* helper function to calculate force and  energy */
   void   uf_calculate(int type, int tag1, int tag2,
 		      double r, double delta,
 		      int eflag, double &u, double &f);

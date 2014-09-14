@@ -62,7 +62,7 @@ BondHarmonicSwimmerExtendedK::~BondHarmonicSwimmerExtendedK()
   }
 }
 
-/* helper function to calculate force in energy */
+/* helper function to calculate force and  energy */
 void   BondHarmonicSwimmerExtendedK::uf_calculate(int type, int tag1, int tag2,
 						  double r, double delta,
 						  int eflag, double &u, double &f) {
@@ -98,7 +98,7 @@ void BondHarmonicSwimmerExtendedK::compute(int eflag, int vflag)
   int i1,i2,n,type;
   tagint tag1, tag2;
   double delx,dely,delz,ebond,fbond;
-  double rsq,r,dr,rk;
+  double rsq,r;
 
   ebond = 0.0;
   if (eflag || vflag) ev_setup(eflag,vflag);
