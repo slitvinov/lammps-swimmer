@@ -128,7 +128,6 @@ void PairSPHBN::compute(int eflag, int vflag) {
     double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i),
 			   cut[itype][itype]);
     double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
-
     double pi = bn_eos(rho[i], rho0i, B[itype]);
     fi = pi  / (rho[i] * rho[i]) * wfdi;
 
