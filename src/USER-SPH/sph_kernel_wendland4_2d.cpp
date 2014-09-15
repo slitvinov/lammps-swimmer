@@ -27,11 +27,11 @@ double SPHKernelWendland42D::w (double r, double h) {
 }
 
 double SPHKernelWendland42D::dw (double r, double h) {
-  double norm2d = 9/PI/(h*h*h);
+  double norm2d = 9.0/PI/(h*h*h);
   double s = r/h;
   double wfd;
   if (s<1) {
-    wfd = 56.0*pow(s-1, 5)*s*(5.0*s+1.0)/3.0;
+    wfd = - 56.0*pow(1-s, 5)*s*(5.0*s+1.0)/3.0;
   } else {
     wfd = 0.0;
   }
