@@ -31,6 +31,7 @@
 #include <algorithm>    // std::max
 
 using namespace LAMMPS_NS;
+#define RHO_EPSILON 1e-3
 
 /* ---------------------------------------------------------------------- */
 

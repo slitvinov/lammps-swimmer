@@ -28,6 +28,7 @@
 #include <algorithm>    // std::min
 
 using namespace LAMMPS_NS;
+#define RHO_EPSILON 1e-3
 
 
 /* ---------------------------------------------------------------------- */
@@ -154,16 +155,22 @@ void PairSPHBN::compute(int eflag, int vflag) {
         double fj = pj  / (rho[j] * rho[j]) * wfdj;
 
         // total pair force & thermal energy increment
+	if (rho0j<RHO_EPSILON) fj = fi;
+	if (rho0i<RHO_EPSILON) fi = fj;
         fpair = - imass * jmass * (fi + fj);
 
-        f[i][0] += delx * fpair;
-        f[i][1] += dely * fpair;
-        f[i][2] += delz * fpair;
+	if (rho0i>RHO_EPSILON) {
+	  f[i][0] += delx * fpair;
+	  f[i][1] += dely * fpair;
+	  f[i][2] += delz * fpair;
+	}
 
         if (newton_pair || j < nlocal) {
-          f[j][0] -= delx * fpair;
-          f[j][1] -= dely * fpair;
-          f[j][2] -= delz * fpair;
+	  if (rho0j>RHO_EPSILON) {
+	    f[j][0] -= delx * fpair;
+	    f[j][1] -= dely * fpair;
+	    f[j][2] -= delz * fpair;
+	  }
         }
 
         if (evflag)
@@ -314,5 +321,6 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
-  return rho/rho0 - 1.0;
+  double rho_cut = std::max(rho0, 1e-12);
+  return rho/rho_cut;
 }

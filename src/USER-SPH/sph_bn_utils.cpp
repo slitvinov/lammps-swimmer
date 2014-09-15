@@ -1,6 +1,7 @@
 #include "string.h"
 #include "error.h"
 #include "sph_bn_utils.h"
+#include <algorithm>    // std::max
 
 #define MAXLINE 1024
 
@@ -69,7 +70,8 @@ namespace LAMMPS_NS {
   }
 
   double get_target_cutoff (double m, int nn, double rhot) {
-    return sqrt(m*nn/rhot)/sqrt(3.141592653589793);
+    double rhot_cut = std::max(rhot, 1e-9);
+    return sqrt(m*nn/rhot_cut)/sqrt(3.141592653589793);
   }
   
 }
