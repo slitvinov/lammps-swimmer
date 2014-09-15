@@ -11,25 +11,27 @@
  See the README file in the top-level LAMMPS directory.
  ------------------------------------------------------------------------- */
 
-#include "sph_kernel_wendldand4_2d.h"
+#include "sph_kernel_wendland4_2d.h"
 #include "math.h"
 using namespace LAMMPS_NS;
+#define PI 3.141592653589793238462643383279 
 
 double SPHKernelWendland42D::w (double r, double h) {
-  double norm2d = 2.864788975654116/(h*h);
+  double norm2d = 9.0/PI/(h*h);
   double s = r/h;
   if (s<1.0) {
-    return norm2d*pow(1.0-s, 6)*(35.0*s*s/3.0+6.0*s+1.0);
+    return norm2d * pow(1-s, 6)*(1.0+6.0*s+35.0/3.0*s*s);
+  } else {
+    return 0.0;
   }
-  return 0.0;
 }
 
 double SPHKernelWendland42D::dw (double r, double h) {
-  double norm2d = 2.864788975654116/(h*h*h);
+  double norm2d = 9/PI/(h*h*h);
   double s = r/h;
   double wfd;
   if (s<1) {
-    wfd = -56*pow(1.0-s, 5)*s*(5.0*s+1.0)/3.0;
+    wfd = 56.0*pow(s-1, 5)*s*(5.0*s+1.0)/3.0;
   } else {
     wfd = 0.0;
   }
