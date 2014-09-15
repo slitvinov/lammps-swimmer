@@ -39,6 +39,7 @@ class FixMesoNoVel : public Fix {
   double dtv,dtf;
   double *step_respa;
   int mass_require;
+  double max_dr;
 
   class Pair *pair;
 };

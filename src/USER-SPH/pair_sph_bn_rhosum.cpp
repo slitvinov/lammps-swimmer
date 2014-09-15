@@ -135,7 +135,7 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
 	double rho0i = get_target_field(x[i], domain , T_target,
 					nxnodes, nynodes, nznodes,
 					ntime_smooth,     update->ntimestep);
-	double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
+	double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i), 
 			       cut[itype][itype]); 
 	wf = ker[itype][itype]->w(0.0, cuti);
         rho[i] = imass * wf;
@@ -166,8 +166,8 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
 	    double rho0j = get_target_field(x[j], domain , T_target,
 					    nxnodes, nynodes, nznodes,
 					    ntime_smooth,     update->ntimestep);
-	    double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j),
-				   cut[itype][itype]); 
+	    double cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j),
+				   cut[itype][jtype]);
 	    wf = ker[itype][jtype]->w(sqrt(rsq), cutj);
 
             rho[i] += mass[jtype] * wf;

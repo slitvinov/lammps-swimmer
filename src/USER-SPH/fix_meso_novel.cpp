@@ -42,8 +42,10 @@ FixMesoNoVel::FixMesoNoVel(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,
         "fix meso/novel command requires atom_style with both energy and density");
 
-  if (narg != 3)
+  if (narg != 4)
     error->all(FLERR,"Illegal number of arguments for fix meso command");
+
+  max_dr = force->numeric(FLERR,arg[3]);
 
   time_integrate = 1;
 }
@@ -91,9 +93,7 @@ void FixMesoNoVel::initial_integrate(int vflag) {
   // update v and x and rho and e of atoms in group
 
   double **x = atom->x;
-  double **v = atom->v;
   double **f = atom->f;
-  double **vest = atom->vest;
   double *rho = atom->rho;
   double *drho = atom->drho;
   double *e = atom->e;
@@ -111,21 +111,35 @@ void FixMesoNoVel::initial_integrate(int vflag) {
   if (igroup == atom->firstgroup)
     nlocal = atom->nfirst;
 
+  // find df
+  double maxA2 = 0.0;
+  double max;
+  double mass_atom;
+  for (i=0; i<nlocal; i++) {
+    if (mask[i] & groupbit) {
+      if (rmass_flag) { 
+	mass_atom = rmass[i];
+      } else {
+        mass_atom = mass[type[i]];
+      }
+      double A2 = (f[i][0]*f[i][0] + f[i][1]*f[i][1] + f[i][2]*f[i][2])/(mass_atom*mass_atom);
+      if (A2>maxA2) maxA2 = A2;
+    }
+  }
+  MPI_Allreduce(&maxA2,&max,1,MPI_DOUBLE,MPI_MAX,world);
+  double dt2 = max_dr / sqrt(max);
+
   for (i = 0; i < nlocal; i++) {
     if (mask[i] & groupbit) {
       if (rmass_flag) { 
-       dtfm = dtf / rmass[i];
+	mass_atom = rmass[i];
       } else {
-        dtfm = dtf / mass[type[i]];
+        mass_atom = mass[type[i]];
       }
 
-      e[i] += dtf * de[i]; // half-step update of particle internal energy
-      rho[i] += dtf * drho[i]; // ... and density
-
-      x[i][0] += dtv * dtfm * f[i][0];
-      x[i][1] += dtv * dtfm * f[i][1];
-      x[i][2] += dtv * dtfm * f[i][2];
-
+      x[i][0] += dt2 * f[i][0]/mass_atom;
+      x[i][1] += dt2 * f[i][1]/mass_atom;
+      x[i][2] += dt2 * f[i][2]/mass_atom;
     }
   }
 }

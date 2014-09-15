@@ -25,7 +25,7 @@
 #include "update.h"
 #include "sph_kernel_dispatch.h"
 #include "sph_bn_utils.h"
-#include <algorithm>    // std::max
+#include <algorithm>    // std::min
 
 using namespace LAMMPS_NS;
 
@@ -69,21 +69,18 @@ void PairSPHBN::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double vxtmp, vytmp, vztmp, imass, jmass, fi, fj, fvisc, velx, vely, velz;
-  double rsq, tmp, wfd, delVdotDelR, deltaE;
+  double imass, jmass, fi, fj;
+  double rsq;
 
   if (eflag || vflag)
     ev_setup(eflag, vflag);
   else
     evflag = vflag_fdotr = 0;
   
-  double **v = atom->vest;
   double **x = atom->x;
   double **f = atom->f;
   double *rho = atom->rho;
   double *mass = atom->mass;
-  double *de = atom->de;
-  double *drho = atom->drho;
   int *type = atom->type;
   int nlocal = atom->nlocal;
   int newton_pair = force->newton_pair;
@@ -119,9 +116,6 @@ void PairSPHBN::compute(int eflag, int vflag) {
     xtmp = x[i][0];
     ytmp = x[i][1];
     ztmp = x[i][2];
-    vxtmp = v[i][0];
-    vytmp = v[i][1];
-    vztmp = v[i][2];
     itype = type[i];
     jlist = firstneigh[i];
     jnum = numneigh[i];
@@ -130,9 +124,9 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
     double rho0i = get_target_field(x[i], domain , T_target,
 				    nxnodes, nynodes, nznodes,
-				    ntime_smooth, update->nsteps);
-    double cuti = std::max(get_target_cutoff(imass, nneighbors, rho0i), 
- 		      cut[itype][itype]); 
+				    ntime_smooth, update->ntimestep);
+    double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i),
+			   cut[itype][itype]);
     double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
 
     double pi = bn_eos(rho[i], rho0i, B[itype]);
@@ -152,48 +146,26 @@ void PairSPHBN::compute(int eflag, int vflag) {
       if (rsq < cutsq[itype][jtype]) {
 	double rho0j = get_target_field(x[j], domain , T_target,
 					nxnodes, nynodes, nznodes,
-					ntime_smooth, update->nsteps);
-	double cutj = std::max(get_target_cutoff(jmass, nneighbors, rho0j), 
-			       cut[itype][itype]);
+					ntime_smooth, update->ntimestep);
+	double cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j), 
+			       cut[itype][jtype]);
 	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
         double pj = bn_eos(rho[j], rho0j, B[jtype]);
         fj = pj  / (rho[j] * rho[j]) * wfdj;
 
-        velx=vxtmp - v[j][0];
-        vely=vytmp - v[j][1];
-        velz=vztmp - v[j][2];
-
-        // dot product of velocity delta and distance vector
-        delVdotDelR = delx * velx + dely * vely + delz * velz;
-
-        // Morris Viscosity (Morris, 1996)
-
-        fvisc = 2 * viscosity[itype][jtype] / (rho[i] * rho[j]);
-
-        fvisc *= imass * jmass * (wfdi + wfdj) / 2.0;
-
         // total pair force & thermal energy increment
-        fpair = -imass * jmass * (fi + fj);
-        deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
+        fpair = - imass * jmass * (fi + fj);
 
        // printf("testvar= %f, %f \n", delx, dely);
 
-        f[i][0] += delx * fpair + velx * fvisc;
-        f[i][1] += dely * fpair + vely * fvisc;
-        f[i][2] += delz * fpair + velz * fvisc;
-
-        // and change in density
-        drho[i] += jmass * delVdotDelR * wfd;
-
-        // change in thermal energy
-        de[i] += deltaE;
+        f[i][0] += delx * fpair;
+        f[i][1] += dely * fpair;
+        f[i][2] += delz * fpair;
 
         if (newton_pair || j < nlocal) {
-          f[j][0] -= delx * fpair + velx * fvisc;
-          f[j][1] -= dely * fpair + vely * fvisc;
-          f[j][2] -= delz * fpair + velz * fvisc;
-          de[j] += deltaE;
-          drho[j] += imass * delVdotDelR * wfd;
+          f[j][0] -= delx * fpair;
+          f[j][1] -= dely * fpair;
+          f[j][2] -= delz * fpair;
         }
 
         if (evflag)
@@ -344,5 +316,5 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
-  return B  * (rho / rho0);
+  return rho/rho0 - 1.0;
 }
