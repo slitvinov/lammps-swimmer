@@ -23,7 +23,7 @@ NR==1{
 	nx, ny, 1, "table.in" > "in.bn"
     close("in.bn")
 
-    Ntotal =  2000
+    Ntotal =  4000
     xmin= 0
     ymin= 0
 
@@ -41,11 +41,14 @@ NR==1{
 
     printf  "variable       dx  equal %g\n", dx > "in.lattice"
     printf "lattice sq ${dx} origin 0.5 0.5 0.0\n" >> "in.lattice"
-    printf "create_atoms 1 box\n" >> "in.lattice"
     printf "variable Ntarget equal %i\n", Ntotal >> "in.lattice"
     printf  "variable sph_mass  equal %g\n", m >> "in.lattice"
-
     close("in.lattice")
+
+    # make a domain bigger for the extrapolations
+    xmin -= delta;     ymin -= delta
+    xmax += delta;     ymin += delta
+
 
     max_g = -1e12
     min_g = 1e12
