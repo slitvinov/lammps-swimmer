@@ -41,7 +41,7 @@ ComputeTargetField::ComputeTargetField(LAMMPS *lmp, int narg, char **arg) :
     sprintf(str,"Cannot open file %s",arg[6]);
     error->one(FLERR,str);
   }
-  int ntime_smooth = force->inumeric(FLERR,arg[7]);
+  ntime_smooth = force->inumeric(FLERR,arg[7]);
 
   if (nxnodes <= 0 || nynodes <= 0 || nznodes <= 0)
     error->all(FLERR,"pair/sph/bn number of nodes must be > 0");
@@ -108,7 +108,7 @@ void ComputeTargetField::compute_peratom()
     if (mask[i] & groupbit) {
       evector[i] = get_target_field(x[i], domain , T_target,
 				    nxnodes, nynodes, nznodes,
-				    ntime_smooth,     update->nsteps);
+				    ntime_smooth,     update->ntimestep);
     }
     else {
       evector[i] = 0.0;
