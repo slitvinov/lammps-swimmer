@@ -8,6 +8,7 @@
 #include "sph_kernel_quintic_2d.h"
 #include "sph_kernel_quintic_3d.h"
 #include "sph_kernel_wendland4_2d.h"
+#include "sph_kernel_liq_2d.h"
 
 namespace LAMMPS_NS {
   SPHKernel* sph_kernel_dispatch(char* kernel_name, int kernel_dimension,
@@ -27,11 +28,14 @@ namespace LAMMPS_NS {
     else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==2) ) {
       return new SPHKernelQuintic2D();
     }
+    else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==3) ) {
+      return new SPHKernelQuintic3D();
+    }
     else if ( (strcmp(kernel_name, "wendland4")==0) && (kernel_dimension==2) ) {
       return new SPHKernelWendland42D();
     }
-    else if ( (strcmp(kernel_name, "quintic")==0) && (kernel_dimension==3) ) {
-      return new SPHKernelQuintic3D();
+    else if ( (strcmp(kernel_name, "liq")==0) && (kernel_dimension==2) ) {
+      return new SPHKernelLIQ2D();
     }
     //    else if ( (strcmp(kernel_name, "wendland4")==0) && (kernel_dimension==3) ) {
     //      return new SPHKernelQuintic3D();

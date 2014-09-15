@@ -69,7 +69,7 @@ void PairSPHBN::compute(int eflag, int vflag) {
   double xtmp, ytmp, ztmp, delx, dely, delz, fpair;
 
   int *ilist, *jlist, *numneigh, **firstneigh;
-  double imass, jmass, fi, fj;
+  double imass, jmass;
   double rsq;
 
   if (eflag || vflag)
@@ -127,9 +127,7 @@ void PairSPHBN::compute(int eflag, int vflag) {
 				    ntime_smooth, update->ntimestep);
     double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i),
 			   cut[itype][itype]);
-    double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
     double pi = bn_eos(rho[i], rho0i, B[itype]);
-    fi = pi  / (rho[i] * rho[i]) * wfdi;
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -143,6 +141,9 @@ void PairSPHBN::compute(int eflag, int vflag) {
       jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
+	double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
+	double fi = pi  / (rho[i] * rho[i]) * wfdi;
+
 	double rho0j = get_target_field(x[j], domain , T_target,
 					nxnodes, nynodes, nznodes,
 					ntime_smooth, update->ntimestep);
@@ -150,12 +151,10 @@ void PairSPHBN::compute(int eflag, int vflag) {
 			       cut[itype][jtype]);
 	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
         double pj = bn_eos(rho[j], rho0j, B[jtype]);
-        fj = pj  / (rho[j] * rho[j]) * wfdj;
+        double fj = pj  / (rho[j] * rho[j]) * wfdj;
 
         // total pair force & thermal energy increment
         fpair = - imass * jmass * (fi + fj);
-
-       // printf("testvar= %f, %f \n", delx, dely);
 
         f[i][0] += delx * fpair;
         f[i][1] += dely * fpair;

@@ -30,6 +30,8 @@
 #include "error.h"
 #include "pair.h"
 
+#include "assert.h"
+#include <iostream>
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
@@ -123,6 +125,11 @@ void FixMesoNoVel::initial_integrate(int vflag) {
         mass_atom = mass[type[i]];
       }
       double A2 = (f[i][0]*f[i][0] + f[i][1]*f[i][1] + f[i][2]*f[i][2])/(mass_atom*mass_atom);
+      if (A2>1e12) {
+	std::cout << "i: " << i << '\n';
+	std::cout << "f: " << " " << f[i][0] << " " << f[i][1] << " " << f[i][2] << '\n';
+	assert(false);
+      };
       if (A2>maxA2) maxA2 = A2;
     }
   }

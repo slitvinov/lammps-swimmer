@@ -1,0 +1,42 @@
+/*
+
+http://arxiv.org/pdf/1006.1767.pdf
+
+*/
+
+/*
+diff_at(x^2, x, 1, 1);
+diff_at(x^3, x, 1, 1);
+*/
+diff_at(expr, s, n, s0):= block([df],
+  df: diff(expr, s, n),
+  subst(s=s0, df));
+
+intpart(expr, var):= integrate(expr*f1(var), var, 0, xs) +
+integrate(expr*f2(var), var, xs, 1);
+
+f1(u):= F - u;
+f2(u):= A*u^4 + B*u^3 + C*u^2 + D*u + E;
+
+df1(u):=''(diff(f1(u), u));
+df2(u):=''(diff(f2(u), u));
+
+/* conditions */
+eq: [f1(xs)=f2(xs),
+diff_at(f2(s), s, 1, xs)=diff_at(f1(s), s, 1, xs),
+diff_at(f2(s), s, 2, xs)=diff_at(f1(s), s, 2, xs),
+f2(1)=0,
+diff_at(f2(s), s, 1, 1)=0,
+diff_at(f2(s), s, 2, 1)=0];
+
+sol: solve(eq, [A, B, C, D, E, F])[1];
+
+maplist('rhs, subst(xs=0.3, sol)), numer;
+
+I: 1/(2*%pi*intpart(s, s));
+load("expr2c2.mac");
+
+expr2c(float(radcan(subst(sol, I))));
+
+for p in sol do printf(true, "const double ~a = ~a;~%", lhs(p), expr2c(rhs(p)));
+
