@@ -1,5 +1,39 @@
+/* small positive number used in ink calculations */
+%eps%: 1e-12;
+
+enum(l)    := maplist("[", makelist(i, i, length(l)), l)$
+denum(l, P):= maplist('first, sort(l,
+    lambda([a, b], P(second(a), second(b)))))$
+sortidx_full(L, P):= denum(enum(L), P)$
+sortidx(L, [P])   := if emptyp(P) then
+    sortidx_full(L, orderlessp) else sortidx_full(L, first(P))$
+
+/*
+l: [100, 30, 20, 10, 80];
+s: sort(l);
+i: sortidx(l);
+
+is(map_back(s, i) = l);
+is(map_with(l, i) = s);
+*/
+map_back(l, i):= block([], local(l), create_list( l[idx], idx, sortidx(i)));
+map_with(l, i):= block([], local(l), create_list( l[idx], idx, i));
+
 mat_fliplr(m):= apply('matrix, maplist('reverse, args(m)));
 mat_flipud(m):= apply('matrix, reverse(args(m)));
+flat_spl(spl):= block([out: []], flat_spl_aux(spl), out);
+flat_spl_aux(spl):= if not listp(first(spl)) then out: cons(spl, out)
+                    else for el in spl do flat_spl_aux(el);
+balance_part(ink_fr_in, Npart):= block([listarith: true, numer: true,
+  ink_fr: copylist(ink_fr_in)], local(ink_fr, N, i),
+  ink_fr: sort(ink_fr),
+  i:      sortidx(ink_fr_in),
+  block([N: round(ink_fr*Npart)], local(N, ink_fr),
+    N[4]: Npart - N[1] - N[2] - N[3],
+    if N[4]<0 then
+    (N: floor(ink_fr*Npart),
+      N[4]: Npart - N[1] - N[2] - N[3]),
+    map_back(N, i)));
 
 /* intput file */
 define_variable(finput, "tif.txt", any);
@@ -19,8 +53,6 @@ ml: apply('matrix, read_nested_list(tmp_input))$
 mmx(i):=min(%nx%, max(1, i));
 mmy(j):=min(%ny%, max(1, j));
 
-/* small positive number used in ink calculations */
-%eps%: 1e-20;
 
 /* parameters of the simulation box */
 %xmin%: 0;
@@ -39,7 +71,7 @@ Vdomain:  (%xmax% - %xmin%) * (%ymax% - %ymin%);
 /* volume of one cell */
 %dx%     : (%xmax% - %xmin%)/%nx%$
 %dy%     : (%ymax% - %ymin%)/%ny%$
-%Vcell%  :  Vdomain / (%nx% * %ny%)$
+%Vcell%  :  float(Vdomain / (%nx% * %ny%))$
 
 /* how much ink I need? */
 ink: xreduce("+", flatten(args(%GS%))) * %Vcell%$
@@ -50,101 +82,97 @@ Rsph: rhs(solve('%Ntotal%*%pi*'R^2 = 'ink, 'R)[2])$
 ['x1, 'x2, 'y1, 'y2, 'ink, 'level];
 */
 
-/* get the ammount of ink in the rectangualr region (including both ends) */
-getink[x1, x2, y1, y2]:= block([s: 0, numer: true],
-  mode_declare(s, flonum),
+/* get the amount of ink in the rectangular region (including both ends) */
+getink[x1, x2, y1, y2]:= block([s: 0.0, numer: true],
+  mode_declare([x1, x2, y1, y2], fixnum),
   for i: x1 thru x2 do
   for j: y1 thru y2 do
   s: s + %GS%[i,j],
   s*%Vcell%);
 
-getvolume(x1, x2, y1, y2):= (x1-x2)*(y1-y2);
+element_getink(lst):=
+  block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4]],
+    getink[x1, x2, y1, y2])$
 
-get_element_volume(lst):=
-block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4]],
-getvolume(x1, x2, y1, y2));
+getvolume(x1, x2, y1, y2):= (x2-x1+1)*(y2-y1+1);
+element_volume(lst):=
+  block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4]],
+    getvolume(x1, x2, y1, y2))$
 
 /*
 
-splite element in four partis
+splite element in four parts
 Usage:
 lst: [1, nx, 1, ny, %Ntotal%, 0]$
 spl: splite_element(lst)$
 */
 splite_element(lst):=
 block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
-  Npart: lst[5], level: lst[6], numer: true],
+  Npart: lst[5], level: lst[6], numer: true, listarith: true],
   block([xc: round((x1+x2-1)/2), yc: round((y1+y2-1)/2), N1, N2, N3, N4, ink],
     ink: getink[x1, x2, y1, y2],
-    N1:  round(Npart*getink[x1, xc, y1, yc]/(ink+%eps%)),
-    N2:  round(Npart*getink[xc+1, x2, y1, yc]/(ink+%eps%)),
-    N3:  round(Npart*getink[xc+1, x2, yc+1, y2]/(ink+%eps%)),
-    /* N4:  round(Npart*getink(x1,   xc, yc+1, y2)/ink), */
-    N4:  Npart - N1 - N2 - N3,
-    [
-    [x1,   xc, y1,   yc,   N1, level+1],
-    [xc+1, x2, y1,   yc,   N2, level+1],
-    [xc+1, x2, yc+1, y2,   N3, level+1],
-    [x1,   xc, yc+1, y2,   N4, level+1]
-    ]));
+    ink_fr: [getink[x1, xc, y1, yc],     getink[xc+1, x2, y1, yc],
+             getink[xc+1, x2, yc+1, y2], getink[x1,   xc, yc+1, y2]]/ink,
+    N: balance_part(ink_fr, Npart),
+    [ [x1,   xc, y1,   yc,   N[1], level+1],
+      [xc+1, x2, y1,   yc,   N[2], level+1],
+      [xc+1, x2, yc+1, y2,   N[3], level+1],
+      [x1,   xc, yc+1, y2,   N[4], level+1]]))$
 
-stop_by_ink(lst):= every( lambda([q], q<1), splite_by_ink(lst));
+%min_part_delta%: 1/4;
+%max_level%     : min(9, floor(log(%nx%)/log(2)));
 
-%min_part_delta%: 1/10;
-/* %max_level%     : min(8, floor(log(%nx%)/log(2))); */
-%max_level%        : 9;
-is_even(q, V):= is( abs(q[5] - Npart*get_element_volume(q)/V) <%min_part_delta%);
+is_even(q, V):= is( abs(q[5] - Npart*element_volume(q)/V) <%min_part_delta%)$
 splite_or_not(lst_in):=
 block([lst: copy(lst_in)],
   block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
     Npart: lst[5], level: lst[6], V,
     listarith: true, numer: true],
-    if Npart<1                                   then return(lst),
-    if getink[x1, x2, y1, y2]<%ink_per_particle% then return(lst),
-    if level>=%max_level%                        then return(lst),
+    if Npart<1                                     then return(lst),
+    if getink[x1, x2, y1, y2]<%ink_per_particle%   then return(lst),
+    if level>=%max_level%                          then return(lst),
     nlist: splite_element(lst),
-    V: get_element_volume(lst),
+    V: element_volume(lst),
     if every(lambda([q], is_even(q, V)), nlist) then
     lst
     else maplist('splite_or_not, nlist)))$
 
-load("distrib")$
 lst: [1, %nx%, 1, %ny%, %Ntotal%, 0]$
 spl: splite_or_not(lst)$
 
-rlist: 'draw2d(transparent=true);
-distrib_corners(spl):=(if not listp(first(spl)) then 
-  block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4]],
-      rlist: endcons( rectangle([x1-1, y1-1], [x2, y2]), rlist))
-  else for el in spl do distrib_corners(el), 'done)$
-distrib_corners(spl);
-
-distrib_processing(spl):= block([rlist: []],
-  distrib_processing_aux(spl),
-  rlist);
+distrib_processing(spl, fname):= block([],
+  with_stdout(fname, 
+    distrib_processing_aux(spl)));
 distrib_processing_aux(spl):=(if not listp(first(spl)) then 
-  block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4]],
-      rlist: endcons( rectangle([x1-1, y1-1], [x2, y2]), rlist))
-  else for el in spl do distrib_corners(el), 'done)$
+  block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4], Npart: spl[5]],
+      printf(true, "~d ~d ~d ~d ~d~%", x1, y1, x2, y2, Npart))
+  else for el in spl do distrib_processing_aux(el), 'done)$
+distrib_processing(spl, "rect.dat");
 
-distrib_particles(spl):=(if not listp(first(spl)) then 
-  block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4], Npart: spl[5], x, y, nattempts, MAX_NATTEMPTS: 100],
-    thru Npart do (
-      nattempts: 0,
-      do (
-        x: random_continuous_uniform(x1-1/2, x2+1/2),
-        y: random_continuous_uniform(y1-1/2, y2+1/2),
-/*        x: (x1+x2)/2,
-        y: (y1+y2)/2, */
-        nattempts: nattempts + 1,
-        if %GS%[mmx(round(x)),mmy(round(y))]>0 or nattempts>MAX_NATTEMPTS then return()
-        ),
-      plist: cons([x, y], plist)))
-  else for el in spl do distrib_particles(el), 'done)$
-plist: [];
-distrib_particles(spl)$
-plist_lammps: maplist( lambda([l], float([%xmin% + %dx%*first(l), %ymin% + %dy%*second(l)])), plist)$
+load("distrib");
+add_particles(x1, x2, y1, y2, Npart):= if Npart=0 then [] else maplist("[",
+  random_continuous_uniform(x1, x2+1, Npart),
+  random_continuous_uniform(y1, y2+1, Npart));
+
+distrib_particles_aux(spl):=
+block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4], Npart: spl[5],
+  x, y],
+  plist: append(plist, add_particles(x1, x2, y1, y2, Npart)));
+
+distrib_particles(spl):= block([plist: []],
+  for el in flat_spl(spl) do distrib_particles_aux(el), plist);
+
+plist: distrib_particles(spl)$
+plist_lammps: maplist(lambda([l],
+    float([%xmin% + %dx%*first(l), %ymin% + %dy%*second(l)])), plist)$
 write_data(plist_lammps, "p.dat");
+
+distrib_processing_particles(plist, fname):= block([],
+  with_stdout(fname, 
+    distrib_processing_particles_aux(plist)));
+distrib_processing_particles_aux(plist):= for el in plist do 
+      printf(true, "~d ~d~%", el[1], el[2]);
+distrib_processing_particles(plist, "procp.dat");
 
 is_inside(x, y, spl):= block([x1: spl[1], x2: spl[2], y1: spl[3],
   y2: spl[4], Npart: spl[5], lvl: spl[6]],
