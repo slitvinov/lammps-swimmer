@@ -1,9 +1,15 @@
 #!/bin/bash
 
-#convert -flop img/quad_ramp.jpg quad_flop.jpg
-#convert +append img/quad_ramp.jpg quad_flop.jpg  quad_long.jpg
-#convert -flip quad_long.jpg tif.txt
+Ntotal=20000
+imgfile=img/blue-noise-test.tif
 
-convert -flip img/blue-noise-test.tif tif.txt
+convert ${imgfile} tif.txt
+convert -flip ${imgfile} tif_flip.txt
 
-awk -f gen.awk tif.txt > table.in
+#maxima --very-quiet -r "Ntotal: ${Ntotal}$ batchload(\"gen-multi-resolution.mac\")\$"
+
+awk -v Ntotal=${Ntotal} -f gen.awk tif_flip.txt > table.aux
+paste -d ' 'table.aux lvl.dat | awk '{print $1, $2, $3, $4, $8}' > table.in
+
+
+#awk -v Ntotal=${Ntotal} -f gen-data.awk tif.txt p.dat > data/sph.data

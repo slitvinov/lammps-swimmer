@@ -36,7 +36,7 @@ maplist('rhs, subst(xs=0.3, sol)), numer;
 I: 1/(2*%pi*intpart(s, s));
 load("expr2c2.mac");
 
-expr2c(float(radcan(subst(sol, I))));
+expr2c((radcan(subst(sol, I))));
 
 for p in sol do printf(true, "const double ~a = ~a;~%", lhs(p), expr2c(rhs(p)));
 

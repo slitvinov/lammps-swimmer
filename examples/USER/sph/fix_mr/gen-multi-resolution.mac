@@ -33,7 +33,7 @@ balance_part(ink_fr_in, Npart):= block([listarith: true, numer: true,
     if N[4]<0 then
     (N: floor(ink_fr*Npart),
       N[4]: Npart - N[1] - N[2] - N[3]),
-    map_back(N, i)));
+    map_back(N, i)))$
 
 /* intput file */
 define_variable(finput, "tif.txt", any);
@@ -45,8 +45,9 @@ system(cmd);
 
 ml: apply('matrix, read_nested_list(tmp_input))$
 %GS%: copymatrix(transpose(mat_flipud(ml)))$
-%nx%: length(%GS%);
-%ny%: length(first(%GS%));
+%nx%: length(%GS%)$
+%ny%: length(first(%GS%))$
+%nz%: 1$
 %GS%: block([numer: true], (255 - %GS%)/255)$
 
 /* max min */
@@ -101,12 +102,12 @@ element_volume(lst):=
 
 /*
 
-splite element in four parts
+split element in four parts
 Usage:
 lst: [1, nx, 1, ny, %Ntotal%, 0]$
-spl: splite_element(lst)$
+spl: split_element(lst)$
 */
-splite_element(lst):=
+split_element(lst):=
 block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
   Npart: lst[5], level: lst[6], numer: true, listarith: true],
   block([xc: round((x1+x2-1)/2), yc: round((y1+y2-1)/2), N1, N2, N3, N4, ink],
@@ -123,7 +124,7 @@ block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
 %max_level%     : min(9, floor(log(%nx%)/log(2)));
 
 is_even(q, V):= is( abs(q[5] - Npart*element_volume(q)/V) <%min_part_delta%)$
-splite_or_not(lst_in):=
+split_or_not(lst_in):=
 block([lst: copy(lst_in)],
   block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
     Npart: lst[5], level: lst[6], V,
@@ -131,14 +132,14 @@ block([lst: copy(lst_in)],
     if Npart<1                                     then return(lst),
     if getink[x1, x2, y1, y2]<%ink_per_particle%   then return(lst),
     if level>=%max_level%                          then return(lst),
-    nlist: splite_element(lst),
+    nlist: split_element(lst),
     V: element_volume(lst),
     if every(lambda([q], is_even(q, V)), nlist) then
     lst
-    else maplist('splite_or_not, nlist)))$
+    else maplist('split_or_not, nlist)))$
 
 lst: [1, %nx%, 1, %ny%, %Ntotal%, 0]$
-spl: splite_or_not(lst)$
+spl: split_or_not(lst)$
 
 distrib_processing(spl, fname):= block([],
   with_stdout(fname, 
@@ -174,26 +175,24 @@ distrib_processing_particles_aux(plist):= for el in plist do
       printf(true, "~d ~d~%", el[1], el[2]);
 distrib_processing_particles(plist, "procp.dat");
 
-is_inside(x, y, spl):= block([x1: spl[1], x2: spl[2], y1: spl[3],
-  y2: spl[4], Npart: spl[5], lvl: spl[6]],
-  if x>=x1 and x<=x2 and y>=y1 and y<=y2 then lvl else false);
+%lvl%: copymatrix(%GS%)$
+%lvl%: %lvl%*0 + 'nan$
 
-find_level(x, y, spl):= block([lvl],
-  catch(
-    if not listp(first(spl)) then throw(is_inside(x, y, spl))
-    else for el in spl do if (lvl: find_level(x, y, el))#false then throw(lvl),
-    false));
+for lst in flat_spl(spl) do block([
+  x1: lst[1], x2: lst[2], y1: lst[3],
+  y2: lst[4], Npart: lst[5], lvl: lst[6]],
+  for iy: y1 thru y2 do
+  for ix: x1 thru x2 do
+  %lvl%[ix,iy]: (x2 - x1 + 1)*%dx%)$
 
-compile(find_level, is_inside);
 
-/*
 with_stdout("lvl.dat",
+  for iz thru %nz% do
   for iy thru %ny% do
-  for ix thru %nx% do
-  printf(true, "~d ~d ~d~%", ix-1, iy-1, find_level(ix, iy, spl)));
-*/
+  for ix thru %nx% do block([],
+    if %lvl%[ix, iy]='nan then error("nan in %lvl%[~d,~d]~%", ix, iy),
+    printf(true, "~d ~d ~d ~g~%", ix-1, iy-1, iz-1, float(%lvl%[ix, iy]))))$
   
-
 /*
 load("draw")$
 pic: 'draw2d(palette = [3, 3, 3],
