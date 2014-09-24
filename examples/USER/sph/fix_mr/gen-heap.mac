@@ -1,0 +1,59 @@
+enum(l)    := maplist("[", makelist(i, i, length(l)), l)$
+denum(l, P):= maplist('first, sort(l,
+    lambda([a, b], P(second(a), second(b)))))$
+sortidx_full(L, P):= denum(enum(L), P)$
+sortidx(L, [P])   := if emptyp(P) then
+    sortidx_full(L, orderlessp) else sortidx_full(L, first(P))$
+
+mat_fliplr(m):= apply('matrix, maplist('reverse, args(m)));
+mat_flipud(m):= apply('matrix, reverse(args(m)));
+
+/* intput file */
+define_variable(finput, "tif.txt", any);
+tmp_input: "_tif.txt";
+
+cmd: printf(false, "/usr/bin/awk -f gen-multi-resolution.awk ~a > ~a",
+  finput, tmp_input);
+system(cmd);
+
+ml: apply('matrix, read_nested_list(tmp_input))$
+%GS%: copymatrix(transpose(mat_flipud(ml)))$
+%nx%: length(%GS%);
+%ny%: length(first(%GS%));
+%GS%: block([numer: true], (255 - %GS%)/255)$
+
+/* max min */
+mmx(i):=min(%nx%, max(1, i));
+mmy(j):=min(%ny%, max(1, j));
+
+
+/* parameters of the simulation box */
+%xmin%: 0;
+%ymin%: 0;
+
+%xmax%: 1;
+%ymax%: %ymin% + (%xmax%-%xmin%)*%ny%/%nx%;
+
+/* the number of particlse */
+define_variable(Ntotal, 20000, fixnum);
+%Ntotal%: Ntotal;
+
+/* domain volume */
+Vdomain:  (%xmax% - %xmin%) * (%ymax% - %ymin%);
+
+/* volume of one cell */
+%dx%     : (%xmax% - %xmin%)/%nx%$
+%dy%     : (%ymax% - %ymin%)/%ny%$
+%Vcell%  :  float(Vdomain / (%nx% * %ny%))$
+
+/* how much ink I need? */
+ink: xreduce("+", flatten(args(%GS%))) * %Vcell%$
+Rsph: rhs(solve('%Ntotal%*%pi*'R^2 = 'ink, 'R)[2])$
+%ink_per_particle%: ink/%Ntotal%$
+
+xy2lin(x, y):= x + %nx%*(y-1);
+lin2xy(lin) := block([y: quotient(lin, %nx%)], [lin - y*%nx%, y + 1]);
+
+%lin_ink%: flatten(args(transpose(%GS%*%Vcell%)))$
+%lin_ink%[xy2lin(345, 241)];
+%GS%[345, 241];
