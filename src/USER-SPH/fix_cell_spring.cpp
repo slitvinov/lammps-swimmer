@@ -12,12 +12,13 @@
 ------------------------------------------------------------------------- */
 
 #include "string.h"
-#include "fix_enforce2d.h"
+#include "fix_cell_spring.h"
 #include "atom.h"
 #include "update.h"
 #include "domain.h"
 #include "respa.h"
 #include "error.h"
+#include "force.h"
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -27,7 +28,8 @@ using namespace FixConst;
 FixCellSpring::FixCellSpring(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg != 3) error->all(FLERR,"Illegal fix cell/spring command");
+  if (narg != 4) error->all(FLERR,"Illegal fix cell/spring command");
+  k_fene = force->numeric(FLERR,arg[3]);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -45,7 +47,8 @@ int FixCellSpring::setmask()
 
 void FixCellSpring::init()
 {
-  
+  if ( (atom->xc_flag != 1) || (atom->rc_flag != 1) )
+    error->all(FLERR,"Atom style should have `xc' and 'rc' attributes to used cell/stick");
 }
 
 /* ---------------------------------------------------------------------- */
@@ -75,46 +78,30 @@ void FixCellSpring::min_setup(int vflag)
 
 void FixCellSpring::post_force(int vflag)
 {
-  double **v = atom->v;
+  double **x = atom->x;
+  double **xc = atom->xc;
   double **f = atom->f;
+  double *rc = atom->rc;
+
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
   if (igroup == atom->firstgroup) nlocal = atom->nfirst;
 
   for (int i = 0; i < nlocal; i++)
     if (mask[i] & groupbit) {
-      v[i][2] = 0.0;
-      f[i][2] = 0.0;
+      double delx = x[i][0] - xc[i][0];
+      double dely = x[i][1] - xc[i][1];
+      double delz = x[i][2] - xc[i][2];
+      
+      double rsq = delx*delx + dely*dely + delz*delz;
+      double r0sq = rc[i] * rc[i];
+      double rlogarg = 1.0 - rsq/r0sq;
+      double fbond = -k_fene/rlogarg;
+
+      f[i][0] += delx*fbond;
+      f[i][1] += dely*fbond;
+      f[i][2] += delz*fbond;
     }
-
-  // for systems with omega/angmom/torque, zero x and y components
-
-  if (atom->omega_flag) {
-    double **omega = atom->omega;
-    for (int i = 0; i < nlocal; i++)
-      if (mask[i] & groupbit) {
-        omega[i][0] = 0.0;
-        omega[i][1] = 0.0;
-      }
-  }
-
-  if (atom->angmom_flag) {
-    double **angmom = atom->angmom;
-    for (int i = 0; i < nlocal; i++)
-      if (mask[i] & groupbit) {
-        angmom[i][0] = 0.0;
-        angmom[i][1] = 0.0;
-      }
-  }
-
-  if (atom->torque_flag) {
-    double **torque = atom->torque;
-    for (int i = 0; i < nlocal; i++)
-      if (mask[i] & groupbit) {
-        torque[i][0] = 0.0;
-        torque[i][1] = 0.0;
-      }
-  }
 }
 
 /* ---------------------------------------------------------------------- */

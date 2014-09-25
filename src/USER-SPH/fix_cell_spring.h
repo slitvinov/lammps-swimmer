@@ -25,7 +25,7 @@ FixStyle(cell/spring,FixCellSpring)
 namespace LAMMPS_NS {
 
 class FixCellSpring : public Fix {
- public:
+public:
   FixCellSpring(class LAMMPS *, int, char **);
   int setmask();
   void init();
@@ -34,6 +34,10 @@ class FixCellSpring : public Fix {
   void post_force(int);
   void post_force_respa(int, int, int);
   void min_post_force(int);
+
+private:
+  double k_fene;
+  
 };
 
 }
