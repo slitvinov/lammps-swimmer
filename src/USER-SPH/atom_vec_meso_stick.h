@@ -69,8 +69,10 @@ class AtomVecMesoStick : public AtomVec {
   int *type,*mask;
   imageint *image;
   double **x,**v,**f;
-  double *rho, *drho, *e, *de, *cv;
-  double **vest; // estimated velocity during force computation
+  double *rho, *drho, *e, *de;
+  double **xc; // `xc' is an end of the spring, 
+               // another end is the particle
+  double *rc;  // a critical length of the spring
 };
 
 }

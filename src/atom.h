@@ -76,6 +76,10 @@ class Atom : protected Pointers {
   double *rho,*drho,*e,*de,*cv;
   double **vest;
 
+  // atom with a spring
+  double *rc;
+  double **xc;
+
   int **nspecial;               // 0,1,2 = cummulative # of 1-2,1-3,1-4 neighs
   tagint **special;             // IDs of 1-2,1-3,1-4 neighs of each atom
   int maxspecial;               // special[nlocal][maxspecial]
@@ -122,6 +126,7 @@ class Atom : protected Pointers {
   int vfrac_flag,spin_flag,eradius_flag,ervel_flag,erforce_flag;
   int cs_flag,csforce_flag,vforce_flag,ervelforce_flag,etag_flag;
   int rho_flag,e_flag,cv_flag,vest_flag;
+  int xc_flag,rc_flag;
 
   // Peridynamics scale factor, used by dump cfg
 
