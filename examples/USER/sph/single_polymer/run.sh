@@ -22,11 +22,8 @@ atom_type_polymer=2
 atom_type_sw_rest=3
 atom_type_sw_surface_head=4
 
-# generate grid
-lmp=~/work/lammps-swimmer/src/lmp_linux
+lmp=../../../../src/lmp_linux
 mpirun=mpirun.mpich
-#lmp=~/work/lammps-swimmer/src/lmp_linux
-#mpirun=~/prefix-mpich/bin/mpirun
 
 ${lmp}  -in in.geninit
 
@@ -46,5 +43,4 @@ awk -f count_bonds.awk pass=1 data.polymer.renumberd pass=2 data.polymer.renumbe
 awk -v new_type=${atom_type_polymer} -v bond_type_list=${polymer_bond_type} \
     -f change_type_of_bonded.awk pass=1 data.polymer.counted pass=2 data.polymer.counted > data.polymer
 
-${mpirun} -np 1 ${lmp} \
-    -in in.run
+${lmp} -in in.run
