@@ -69,7 +69,7 @@ class AtomVecMesoStick : public AtomVec {
   int *type,*mask;
   imageint *image;
   double **x,**v,**f;
-  double *rho, *drho, *e, *de;
+  double *rho, *drho, *de, *cv;
   double **xc; // `xc' is an end of the spring, 
                // another end is the particle
   double *rc;  // a critical length of the spring
