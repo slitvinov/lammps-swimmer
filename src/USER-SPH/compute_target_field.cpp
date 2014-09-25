@@ -51,12 +51,16 @@ ComputeTargetField::ComputeTargetField(LAMMPS *lmp, int narg, char **arg) :
 
   memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
   memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
+  memory->create(csize_target,nxnodes,nynodes,nznodes,"ttm:csize_target");
 
   // set target field from input file
   MPI_Comm_rank(world,&me);
   if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
-					 T_initial_set, T_target, error);
+					 T_initial_set, T_target, 
+					 csize_target, 
+					 error);
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
+  MPI_Bcast(&csize_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
 
   peratom_flag = 1;
   size_peratom_cols = 0;
@@ -106,9 +110,14 @@ void ComputeTargetField::compute_peratom()
 
   for (int i = 0; i < nlocal; i++) {
     if (mask[i] & groupbit) {
-      evector[i] = get_target_field(x[i], domain , T_target,
-				    nxnodes, nynodes, nznodes,
-				    ntime_smooth,     update->ntimestep);
+      double csize;
+      double rho;
+      get_target_field(x[i], domain , T_target,
+		       csize_target,
+		       nxnodes, nynodes, nznodes,
+		       ntime_smooth,     update->ntimestep,
+		       &rho, &csize);
+       evector[i] = rho;
     }
     else {
       evector[i] = 0.0;

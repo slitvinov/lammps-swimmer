@@ -60,6 +60,7 @@ PairSPHBN::~PairSPHBN() {
 
      memory->destroy(T_initial_set);
      memory->destroy(T_target);
+     memory->destroy(csize_target);
   }
 }
 
@@ -123,11 +124,15 @@ void PairSPHBN::compute(int eflag, int vflag) {
 
     imass = mass[itype];
 
-    double rho0i = get_target_field(x[i], domain , T_target,
-				    nxnodes, nynodes, nznodes,
-				    ntime_smooth, update->ntimestep);
-    double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i),
-			   cut[itype][itype]);
+    double rho0i;
+    double cuti;
+    get_target_field(x[i], domain , T_target,
+		     csize_target,
+		     nxnodes, nynodes, nznodes,
+		     ntime_smooth, update->ntimestep,
+		     &rho0i, &cuti);
+    cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i, cuti),
+		    cut[itype][itype]);
     double pi = bn_eos(rho[i], rho0i, B[itype]);
 
     for (jj = 0; jj < jnum; jj++) {
@@ -145,10 +150,14 @@ void PairSPHBN::compute(int eflag, int vflag) {
 	double wfdi = ker[itype][itype]->dw_per_r(sqrt(rsq), cuti);
 	double fi = pi  / (rho[i] * rho[i]) * wfdi;
 
-	double rho0j = get_target_field(x[j], domain , T_target,
-					nxnodes, nynodes, nznodes,
-					ntime_smooth, update->ntimestep);
-	double cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j), 
+	double rho0j;
+	double cutj;
+	get_target_field(x[j], domain , T_target,
+			 csize_target,
+			 nxnodes, nynodes, nznodes,
+			 ntime_smooth, update->ntimestep, 
+			 &rho0j, &cutj);
+	cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j, cutj),
 			       cut[itype][jtype]);
 	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
         double pj = bn_eos(rho[j], rho0j, B[jtype]);
@@ -239,12 +248,16 @@ void PairSPHBN::settings(int narg, char **arg) {
 
   memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
   memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
+  memory->create(csize_target,nxnodes,nynodes,nznodes,"ttm:csize_target");
 
   // set target field from input file
   MPI_Comm_rank(world,&me);
-  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
-					 T_initial_set, T_target, error);
+  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes,
+					 T_initial_set, T_target,
+					 csize_target,
+					 error);
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
+  MPI_Bcast(&csize_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
  }
 
 /* ----------------------------------------------------------------------
@@ -322,5 +335,6 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 
 double PairSPHBN::bn_eos (double rho, double rho0, double B) {
   double rho_cut = std::max(rho0, 1e-12);
-  return rho/rho_cut;
+  double rho_real = rho/rho_cut;
+  return std::max(rho_real, 0.0);
 }

@@ -21,12 +21,15 @@ namespace  LAMMPS_NS {
   void read_initial_target_field(FILE* fpr,
 				 int nxnodes, int nynodes, int nznodes,
 				 int ***T_initial_set, double ***T_target,
+				 double ***csize_target,
 				 Error *error);
-  double get_target_field (double* xi, Domain *&domain, double ***T_target,
-			   int nxnodes, int nynodes, int nznodes, 
-			   int ntime_smooth, bigint ntimestep);
+  void get_target_field (double* xi, Domain *&domain, double ***T_target,
+			 double ***csize_target,
+			 int nxnodes, int nynodes, int nznodes, 
+			 int ntime_smooth, bigint ntimestep, 
+			 double* rho, double* csize);
   
-  double get_target_cutoff (double m, int nn, double rhot);
+  double get_target_cutoff (double m, int nn, double rhot, double csize);
 };
 
 #endif

@@ -63,6 +63,7 @@ PairSPHBNRhoSum::~PairSPHBNRhoSum() {
 
     memory->destroy(T_initial_set);
     memory->destroy(T_target);
+    memory->destroy(csize_target);
   }
 }
 
@@ -133,11 +134,15 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
         i = ilist[ii];
         itype = type[i];
         imass = mass[itype];
-	double rho0i = get_target_field(x[i], domain , T_target,
-					nxnodes, nynodes, nznodes,
-					ntime_smooth,     update->ntimestep);
-	double cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i), 
-			       cut[itype][itype]); 
+	double rho0i;
+	double cuti;
+	get_target_field(x[i], domain , T_target,
+			 csize_target,
+			 nxnodes, nynodes, nznodes,
+			 ntime_smooth,     update->ntimestep,
+			 &rho0i, &cuti);
+	cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i, cuti),
+			cut[itype][itype]); 
 	wf = ker[itype][itype]->w(0.0, cuti);
         rho[i] = imass * wf;
       }
@@ -164,11 +169,15 @@ void PairSPHBNRhoSum::compute(int eflag, int vflag) {
           rsq = delx * delx + dely * dely + delz * delz;
 
           if (rsq < cutsq[itype][jtype]) {
-	    double rho0j = get_target_field(x[j], domain , T_target,
-					    nxnodes, nynodes, nznodes,
-					    ntime_smooth,     update->ntimestep);
-	    double cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j),
-				   cut[itype][jtype]);
+	    double rho0j;
+	    double cutj;
+	    get_target_field(x[j], domain , T_target,
+			     csize_target,
+			     nxnodes, nynodes, nznodes,
+			     ntime_smooth,     update->ntimestep,
+			     &rho0j, &cutj);
+	    cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j, cutj),
+			    cut[itype][jtype]);
 	    wf = ker[itype][jtype]->w(sqrt(rsq), cutj);
 
             rho[i] += mass[jtype] * wf;
@@ -238,12 +247,16 @@ void PairSPHBNRhoSum::settings(int narg, char **arg) {
 
   memory->create(T_initial_set,nxnodes,nynodes,nznodes,"ttm:T_initial_set");
   memory->create(T_target,nxnodes,nynodes,nznodes,"ttm:T_target");
+  memory->create(csize_target,nxnodes,nynodes,nznodes,"ttm:csize_target");
 
   // set target field from input file
   MPI_Comm_rank(world,&me);
-  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes, 
-					 T_initial_set, T_target, error);
+  if (me == 0) read_initial_target_field(fpr, nxnodes, nynodes, nznodes,
+					 T_initial_set, T_target,
+					 csize_target,
+					 error);
   MPI_Bcast(&T_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
+  MPI_Bcast(&csize_target[0][0][0],total_nnodes,MPI_DOUBLE,0,world);
 }
 
 /* ----------------------------------------------------------------------

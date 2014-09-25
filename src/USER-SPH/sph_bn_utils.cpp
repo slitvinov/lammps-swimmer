@@ -14,6 +14,7 @@ namespace LAMMPS_NS {
   void read_initial_target_field(FILE* fpr,
 				 int nxnodes, int nynodes, int nznodes,
 				 int ***T_initial_set, double ***T_target,
+				 double ***csize_target,
 				 Error *error) {
     char line[MAXLINE];
     
@@ -26,11 +27,14 @@ namespace LAMMPS_NS {
     
     int ixnode,iynode,iznode;
     double T_tmp;
+    double csize_tmp;
     while (1) {
       if (fgets(line,MAXLINE,fpr) == NULL) break;
-      sscanf(line,"%d %d %d %lg",&ixnode,&iynode,&iznode,&T_tmp);
+      sscanf(line,"%d %d %d %lg %lg",&ixnode,&iynode,&iznode,&T_tmp, &csize_tmp);
       if (T_tmp < 0.0) error->one(FLERR,"pair/sph/bn target filed must be > 0.0");
+      if (csize_tmp < 0.0) error->one(FLERR,"pair/sph/bn target filed must be > 0.0");
       T_target[ixnode][iynode][iznode] = T_tmp;
+      csize_target[ixnode][iynode][iznode] = csize_tmp;
       T_initial_set[ixnode][iynode][iznode] = 1;
     }
     
@@ -44,9 +48,11 @@ namespace LAMMPS_NS {
     fclose(fpr);
   };
 
-  double get_target_field (double* xi, Domain *&domain, double ***T_target,
-			   int nxnodes, int nynodes, int nznodes, 
-			   int ntime_smooth, bigint ntimestep) {
+  void get_target_field (double* xi, Domain *&domain, double ***T_target,
+			 double ***csize_target,
+			 int nxnodes, int nynodes, int nznodes, 
+			 int ntime_smooth, bigint ntimestep,
+			 double* rho, double* csize) {
     double xscale = (xi[0] - domain->boxlo[0])/domain->xprd;
     double yscale = (xi[1] - domain->boxlo[1])/domain->yprd;
     double zscale = (xi[2] - domain->boxlo[2])/domain->zprd;
@@ -61,17 +67,22 @@ namespace LAMMPS_NS {
     while (iznode < 0) iznode += nznodes;
 
     double Tfin = T_target[ixnode][iynode][iznode];
+    double csize_fin = csize_target[ixnode][iynode][iznode];
     if (ntimestep>ntime_smooth) {
-      return Tfin;
+      *rho = Tfin;
+      *csize = csize_fin;
+    } else {
+      double Tr  = (1.0*(ntime_smooth-ntimestep) + Tfin*ntimestep)
+	/static_cast<double>(ntime_smooth);
+      *rho = Tr;
+      *csize = csize_fin;
     }
-    double Tr  = (1.0*(ntime_smooth-ntimestep) + Tfin*ntimestep)
-      /static_cast<double>(ntime_smooth);
-    return Tr;
   }
 
-  double get_target_cutoff (double m, int nn, double rhot) {
+  double get_target_cutoff (double m, int nn, double rhot, double csize) {
     double rhot_cut = std::max(rhot, 1e-9);
-    return sqrt(m*nn/rhot_cut)/sqrt(3.141592653589793);
+    //    return sqrt(m*nn/rhot_cut)/sqrt(3.141592653589793);
+    return nn*csize;
   }
   
 }

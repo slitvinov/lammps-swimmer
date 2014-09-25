@@ -47,6 +47,7 @@ class PairSPHBN : public Pair {
 
   int ***T_initial_set;
   double ***T_target;
+  double ***csize_target;
 
   pSPHKernel  **ker;
   void allocate();

@@ -41,6 +41,7 @@ class ComputeTargetField : public Compute {
   int ntime_smooth;
   int ***T_initial_set;
   double ***T_target;
+  double ***csize_target;
 };
 
 }
