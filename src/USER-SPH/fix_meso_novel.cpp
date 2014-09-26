@@ -40,9 +40,9 @@ using namespace FixConst;
 FixMesoNoVel::FixMesoNoVel(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg) {
 
-  if ((atom->e_flag != 1) || (atom->rho_flag != 1))
+  if (atom->rho_flag != 1)
     error->all(FLERR,
-        "fix meso/novel command requires atom_style with both energy and density");
+        "fix meso/novel command requires atom_style with density");
 
   if (narg != 4)
     error->all(FLERR,"Illegal number of arguments for fix meso command");
@@ -57,7 +57,6 @@ FixMesoNoVel::FixMesoNoVel(LAMMPS *lmp, int narg, char **arg) :
 int FixMesoNoVel::setmask() {
   int mask = 0;
   mask |= INITIAL_INTEGRATE;
-  mask |= PRE_FORCE;
   return mask;
 }
 
@@ -66,25 +65,6 @@ int FixMesoNoVel::setmask() {
 void FixMesoNoVel::init() {
   dtv = update->dt;
   dtf = 0.5 * update->dt * force->ftm2v;
-}
-
-void FixMesoNoVel::setup_pre_force(int vflag)
-{
-  // set vest equal to v 
-  double **v = atom->v;
-  double **vest = atom->vest;
-  int *mask = atom->mask;
-  int nlocal = atom->nlocal;
-  if (igroup == atom->firstgroup)
-    nlocal = atom->nfirst;
-
-  for (int i = 0; i < nlocal; i++) {
-    if (mask[i] & groupbit) {
-      vest[i][0] = v[i][0];
-      vest[i][1] = v[i][1];
-      vest[i][2] = v[i][2];
-    }
-  }
 }
 
 /* ----------------------------------------------------------------------

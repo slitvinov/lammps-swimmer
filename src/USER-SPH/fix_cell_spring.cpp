@@ -19,6 +19,7 @@
 #include "respa.h"
 #include "error.h"
 #include "force.h"
+#include <algorithm> // std::max()
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -95,7 +96,7 @@ void FixCellSpring::post_force(int vflag)
       
       double rsq = delx*delx + dely*dely + delz*delz;
       double r0sq = rc[i] * rc[i];
-      double rlogarg = 1.0 - rsq/r0sq;
+      double rlogarg = std::min(1.0 - rsq/r0sq, 0.01);
       double fbond = -k_fene/rlogarg;
 
       f[i][0] += delx*fbond;

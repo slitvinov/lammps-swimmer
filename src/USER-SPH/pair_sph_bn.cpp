@@ -47,9 +47,6 @@ PairSPHBN::~PairSPHBN() {
     memory->destroy(cutsq);
 
     memory->destroy(cut);
-    memory->destroy(soundspeed);
-    memory->destroy(B);
-    memory->destroy(viscosity);
 
     int n = atom->ntypes;
     for (int i=0; i<=n; ++i) {
@@ -58,9 +55,9 @@ PairSPHBN::~PairSPHBN() {
     }
     delete[] ker;
 
-     memory->destroy(T_initial_set);
-     memory->destroy(T_target);
-     memory->destroy(csize_target);
+    memory->destroy(T_initial_set);
+    memory->destroy(T_target);
+    memory->destroy(csize_target);
   }
 }
 
@@ -133,7 +130,7 @@ void PairSPHBN::compute(int eflag, int vflag) {
 		     &rho0i, &cuti);
     cuti = std::min(get_target_cutoff(imass, nneighbors, rho0i, cuti),
 		    cut[itype][itype]);
-    double pi = bn_eos(rho[i], rho0i, B[itype]);
+    double pi = bn_eos(rho[i], rho0i);
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -160,12 +157,12 @@ void PairSPHBN::compute(int eflag, int vflag) {
 	cutj = std::min(get_target_cutoff(jmass, nneighbors, rho0j, cutj),
 			       cut[itype][jtype]);
 	double wfdj = ker[itype][itype]->dw_per_r(sqrt(rsq), cutj);
-        double pj = bn_eos(rho[j], rho0j, B[jtype]);
+        double pj = bn_eos(rho[j], rho0j);
         double fj = pj  / (rho[j] * rho[j]) * wfdj;
 
         // total pair force & thermal energy increment
-	if (rho0j<RHO_EPSILON) fj = fi;
-	if (rho0i<RHO_EPSILON) fi = fj;
+	if (rho0j<RHO_EPSILON) fj = 2*fi;
+	if (rho0i<RHO_EPSILON) fi = 2*fj;
         fpair = - imass * jmass * (fi + fj);
 
 	if (rho0i>RHO_EPSILON) {
@@ -206,10 +203,7 @@ void PairSPHBN::allocate() {
 
   memory->create(cutsq, n + 1, n + 1, "pair:cutsq");
 
-  memory->create(soundspeed, n + 1, "pair:soundspeed");
-  memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
-  memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
 
   ker = new pSPHKernel*[n+1];
   for (int i=0; i<=n; ++i) {
@@ -281,17 +275,11 @@ void PairSPHBN::settings(int narg, char **arg) {
   kernel_name_one = new char[n_kernel_name];
   strcpy(kernel_name_one, arg[i_kernel_name]);
 
-  double soundspeed_one = force->numeric(FLERR,arg[3]);
-  double viscosity_one = force->numeric(FLERR,arg[4]);
   double cut_one = force->numeric(FLERR,arg[5]);
-  double B_one = soundspeed_one * soundspeed_one;
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
-    soundspeed[i] = soundspeed_one;
-    B[i] = B_one;
     for (int j = MAX(jlo,i); j <= jhi; j++) {
-      viscosity[i][j] = viscosity_one;
       //printf("setting cut[%d][%d] = %f\n", i, j, cut_one);
       cut[i][j] = cut_one;
 
@@ -318,8 +306,6 @@ double PairSPHBN::init_one(int i, int j) {
   }
 
   cut[j][i] = cut[i][j];
-  viscosity[j][i] = viscosity[i][j];
-
   return cut[i][j];
 }
 
@@ -333,7 +319,7 @@ double PairSPHBN::single(int i, int j, int itype, int jtype,
 }
 
 
-double PairSPHBN::bn_eos (double rho, double rho0, double B) {
+double PairSPHBN::bn_eos (double rho, double rho0) {
   double rho_cut = std::max(rho0, 1e-12);
   double rho_real = rho/rho_cut;
   return std::max(rho_real, 0.0);

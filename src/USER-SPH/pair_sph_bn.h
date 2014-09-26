@@ -36,8 +36,7 @@ class PairSPHBN : public Pair {
   virtual double single(int, int, int, int, double, double, double, double &);
 
  protected:
-  double *soundspeed, *B;
-  double **cut,**viscosity;
+  double **cut;
   int first;
 
   int me;
@@ -52,7 +51,7 @@ class PairSPHBN : public Pair {
   pSPHKernel  **ker;
   void allocate();
 
-  double bn_eos (double rho, double rho0, double B);
+  double bn_eos (double rho, double rho0);
 };
 
 }

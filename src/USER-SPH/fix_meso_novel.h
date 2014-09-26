@@ -29,7 +29,6 @@ class FixMesoNoVel : public Fix {
   FixMesoNoVel(class LAMMPS *, int, char **);
   int setmask();
   virtual void init();
-  virtual void setup_pre_force(int);
   virtual void initial_integrate(int);
   void reset_dt();
 

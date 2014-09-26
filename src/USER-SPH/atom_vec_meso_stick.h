@@ -17,8 +17,8 @@ AtomStyle(meso/stick,AtomVecMesoStick)
 
 #else
 
-#ifndef LMP_ATOM_VEC_MESO_H
-#define LMP_ATOM_VEC_MESO_H
+#ifndef LMP_ATOM_VEC_MESO_STICK_H
+#define LMP_ATOM_VEC_MESO_STICK_H
 
 #include "atom_vec.h"
 

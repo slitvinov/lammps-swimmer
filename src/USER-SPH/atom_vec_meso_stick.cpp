@@ -38,9 +38,9 @@ AtomVecMesoStick::AtomVecMesoStick(LAMMPS *lmp) : AtomVec(lmp)
   size_reverse = 5; // 3 + drho + de
   size_border = 12; // 6 + rho + rc + xc[3] + cv
   size_velocity = 3;
-  size_data_atom = 8;
+  size_data_atom = 11; // tag + type + x[3] + rho + rc + cv + xc[3]
   size_data_vel = 4;
-  xcol_data = 6;
+  xcol_data = 9;
 
   atom->rc_flag = 1;
   atom->rho_flag = 1;
@@ -72,7 +72,7 @@ void AtomVecMesoStick::grow(int n)
 
   rho = memory->grow(atom->rho, nmax, "atom:rho");
   drho = memory->grow(atom->drho, nmax*comm->nthreads, "atom:drho");
-  rc = memory->grow(atom->e, nmax, "atom:rc");
+  rc = memory->grow(atom->rc, nmax, "atom:rc");
   de = memory->grow(atom->de, nmax*comm->nthreads, "atom:de");
   xc = memory->grow(atom->xc, nmax, 3, "atom:xc");
   cv = memory->grow(atom->cv, nmax, "atom:cv");
@@ -845,6 +845,10 @@ void AtomVecMesoStick::data_atom(double *coord, imageint imagetmp, char **values
   rc[nlocal] = atof(values[3]);
   cv[nlocal] = atof(values[4]);
 
+  xc[nlocal][0] = atof(values[5]);
+  xc[nlocal][1] = atof(values[6]);
+  xc[nlocal][2] = atof(values[7]);
+
   x[nlocal][0] = coord[0];
   x[nlocal][1] = coord[1];
   x[nlocal][2] = coord[2];
@@ -857,10 +861,6 @@ void AtomVecMesoStick::data_atom(double *coord, imageint imagetmp, char **values
   v[nlocal][0] = 0.0;
   v[nlocal][1] = 0.0;
   v[nlocal][2] = 0.0;
-
-  xc[nlocal][0] = 0.0;
-  xc[nlocal][1] = 0.0;
-  xc[nlocal][2] = 0.0;
 
   de[nlocal] = 0.0;
   drho[nlocal] = 0.0;
