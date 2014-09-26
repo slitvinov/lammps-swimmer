@@ -1,0 +1,230 @@
+/* small positive number used in ink calculations */
+%eps%: 1e-12;
+
+enum(l)    := maplist("[", makelist(i, i, length(l)), l)$
+denum(l, P):= maplist('first, sort(l,
+    lambda([a, b], P(second(a), second(b)))))$
+sortidx_full(L, P):= denum(enum(L), P)$
+sortidx(L, [P])   := if emptyp(P) then
+    sortidx_full(L, orderlessp) else sortidx_full(L, first(P))$
+
+floor_sp(l):= if listp(l) then maplist('floor_sp_aux, l) else floor_sp_aux(l);
+floor_sp_aux(x):= if x<1 then floor(x) else round(x)$
+
+/*
+l: [100, 30, 20, 10, 80];
+s: sort(l);
+i: sortidx(l);
+
+is(map_back(s, i) = l);
+is(map_with(l, i) = s);
+*/
+map_back(l, i):= block([], local(l), create_list( l[idx], idx, sortidx(i)));
+map_with(l, i):= block([], local(l), create_list( l[idx], idx, i));
+
+mat_fliplr(m):= apply('matrix, maplist('reverse, args(m)));
+mat_flipud(m):= apply('matrix, reverse(args(m)));
+flat_spl(spl):= block([out: []], flat_spl_aux(spl), out);
+flat_spl_aux(spl):= if not listp(first(spl)) then out: cons(spl, out)
+                    else for el in spl do flat_spl_aux(el);
+balance_part(ink_pp_in, Npart):= block([listarith: true, numer: true,
+  ink_pp: copylist(ink_pp_in)], local(ink_pp, N, i),
+  ink_pp: sort(ink_pp),
+  i:      sortidx(ink_pp_in),
+  block([N: floor(ink_pp)], local(N, ink_pp),
+    N[4]: Npart - N[1] - N[2] - N[3],
+    if N[4]<0 then error("balance_part fails"),
+    map_back(N, i)))$
+
+/* intput file */
+define_variable(finput, "tif.txt", any);
+tmp_input: "_tif.txt";
+
+cmd: printf(false, "/usr/bin/awk -f gen-multi-resolution.awk ~a > ~a",
+  finput, tmp_input);
+system(cmd);
+
+ml: apply('matrix, read_nested_list(tmp_input))$
+%GS%: copymatrix(transpose(mat_flipud(ml)))$
+%nx%: length(%GS%)$
+%ny%: length(first(%GS%))$
+%nz%: 1$
+%GS%: block([numer: true], (255 - %GS%)/255)$
+
+/* max min */
+mmx(i):=min(%nx%, max(1, i));
+mmy(j):=min(%ny%, max(1, j));
+
+
+/* parameters of the simulation box */
+%xmin%: 0;
+%ymin%: 0;
+
+%xmax%: 1;
+%ymax%: %ymin% + (%xmax%-%xmin%)*%ny%/%nx%;
+
+/* the number of particlse */
+define_variable(Ntotal, 20000, fixnum);
+%Ntotal%: Ntotal;
+
+/* domain volume */
+Vdomain:  (%xmax% - %xmin%) * (%ymax% - %ymin%);
+
+/* volume of one cell */
+%dx%     : (%xmax% - %xmin%)/%nx%$
+%dy%     : (%ymax% - %ymin%)/%ny%$
+%Vcell%  :  float(Vdomain / (%nx% * %ny%))$
+
+/* how much ink I need? */
+ink: xreduce("+", flatten(args(%GS%))) * %Vcell%$
+Rsph: rhs(solve('%Ntotal%*%pi*'R^2 = 'ink, 'R)[2])$
+%ink_per_particle%: ink/%Ntotal%$
+
+/*
+['x1, 'x2, 'y1, 'y2, 'ink, 'level];
+*/
+/* get the amount of ink in the rectangular region (including both ends) */
+getink[x1, x2, y1, y2]:= block([s: 0.0, numer: true],
+  for i: x1 thru x2 do
+  for j: y1 thru y2 do
+  s: s + %GS%[i,j],
+  s*%Vcell%);
+
+/* get the center of mass of the element */
+getcm[x1, x2, y1, y2]:= block([sx: 0.0, sy: 0.0, s: 0.0, numer: true],
+  for i: x1 thru x2 do
+  for j: y1 thru y2 do (
+    s : s + %GS%[i,j],
+    sx: sx + %GS%[i,j]*i, sy: sy + %GS%[i,j]*j),
+  if s<%eps% then [(x2+x1)/2, (y1+y2)/2]
+  else [sx/s, sy/s]);
+
+element_getink(lst):=
+  block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4]],
+    getink[x1, x2, y1, y2])$
+
+getvolume(x1, x2, y1, y2):= (x2-x1+1)*(y2-y1+1);
+element_volume(lst):=
+  block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4]],
+    getvolume(x1, x2, y1, y2))$
+
+/*
+
+split element in four parts
+Usage:
+lst: [1, nx, 1, ny, %Ntotal%, 0]$
+spl: split_element(lst)$
+*/
+split_element(lst):=
+block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
+  Npart: lst[5], level: lst[6], numer: true, listarith: true],
+  block([xc: round((x1+x2-1)/2), yc: round((y1+y2-1)/2), N1, N2, N3, N4, ink, ink_pp],
+    ink_pp: [getink[x1, xc, y1, yc],     getink[xc+1, x2, y1, yc],
+             getink[xc+1, x2, yc+1, y2],
+             getink[x1,   xc, yc+1, y2]]/%ink_per_particle%,
+    N: balance_part(ink_pp, Npart),
+    [ [x1,   xc, y1,   yc,   N[1], level+1],
+      [xc+1, x2, y1,   yc,   N[2], level+1],
+      [xc+1, x2, yc+1, y2,   N[3], level+1],
+      [x1,   xc, yc+1, y2,   N[4], level+1]]))$
+
+/* is_even(q, V):= is( abs(q[5] - Npart*element_volume(q)/V) <%min_part_delta%)$ */
+element_fraction(q, ink):= abs( - element_getink(q)/ink);
+element_error(nlist, ink):= xreduce("+", maplist(lambda([q], element_fraction(q, ink)),
+    nlist));
+
+any_ink_subscells(nlist):= every(lambda([q], q < %ink_per_particle%),
+    maplist('element_getink, nlist));
+
+%min_part_delta%: 2;
+%max_level%     : min(9, floor(log(%nx%)/log(2)));
+split_or_not(lst_in):=
+block([lst: copy(lst_in)],
+  block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
+    Npart: lst[5], level: lst[6], ink,
+    listarith: true, numer: true],
+    if Npart<1                                     then return(lst),
+    if level>=%max_level%                          then return(lst),
+/*    if getink[x1, x2, y1, y2]<%ink_per_particle%   then return(lst), */
+    nlist: split_element(lst),  ink: element_getink(lst),
+    if element_error(nlist, ink)<%min_part_delta% then return(lst),
+/*    if any_ink_subscells(nlist) then              return(lst), */
+    maplist('split_or_not, nlist)))$
+
+lst: [1, %nx%, 1, %ny%, %Ntotal%, 0]$
+spl: split_or_not(lst)$
+
+distrib_processing(spl, fname):= block([],
+  with_stdout(fname, 
+    distrib_processing_aux(spl)));
+distrib_processing_aux(spl):=(if not listp(first(spl)) then 
+  block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4], Npart: spl[5]],
+      printf(true, "~d ~d ~d ~d ~d~%", x1, y1, x2, y2, Npart))
+  else for el in spl do distrib_processing_aux(el), 'done)$
+distrib_processing(spl, "rect.dat");
+
+load("distrib");
+random_with_try(x1, x2, y1, y2):=block([MAXATEMPTS: 1000,  nattampts: 0, x, y],
+  while (nattampts<MAXATEMPTS) do (
+    nattampts: nattampts + 1,
+    x: random_continuous_uniform(x1-1/2, x2+1/2),
+    y: random_continuous_uniform(y1-1/2, y2+1/2),
+    if %GS%[mmx(round(x)), mmy(round(y))]>0 then return()),
+  [x, y]);
+
+add_one_particle(x1, x2, y1, y2):=block([R: random_with_try(x1, x2, y1, y2),
+  Rc: getcm[x1, x2, y1, y2],  cellsize: x2 - x1 + 1],
+  append(R, Rc, [cellsize]));
+  
+add_particles(x1, x2, y1, y2, Npart):= if Npart=0 then [] else
+makelist(add_one_particle(x1, x2, y1, y2),
+    i, Npart);
+
+distrib_particles_aux(spl):=
+block([x1: spl[1], x2: spl[2], y1: spl[3], y2: spl[4], Npart: spl[5],
+  x, y],
+  plist: append(plist, add_particles(x1, x2, y1, y2, Npart)));
+
+distrib_particles(spl):= block([plist: []],
+  for el in flat_spl(spl) do distrib_particles_aux(el), plist);
+
+plist: distrib_particles(spl)$
+plist_lammps: maplist(lambda([l],
+    float([%xmin% + %dx%*l[1], %ymin% + %dy%*l[2], %xmin%+%dx%*l[3], %ymin%+%dy%*l[4], %dx%*l[5]])), plist)$
+write_data(plist_lammps, "p.dat");
+
+distrib_processing_particles(plist, fname):= block([],
+  with_stdout(fname, 
+    distrib_processing_particles_aux(plist)));
+distrib_processing_particles_aux(plist):= for el in plist do 
+      printf(true, "~d ~d~%", first(el), second(el));
+distrib_processing_particles(plist, "procp.dat");
+
+%lvl%: copymatrix(%GS%)$
+%lvl%: %lvl%*0 + 'nan$
+
+for lst in flat_spl(spl) do block([
+  x1: lst[1], x2: lst[2], y1: lst[3],
+  y2: lst[4], Npart: lst[5], lvl: lst[6]],
+  for iy: y1 thru y2 do
+  for ix: x1 thru x2 do
+  %lvl%[ix,iy]: (x2 - x1 + 1)*%dx%)$
+
+
+with_stdout("lvl.dat",
+  for iz thru %nz% do
+  for iy thru %ny% do
+  for ix thru %nx% do block([],
+    if %lvl%[ix, iy]='nan then error("nan in %lvl%[~d,~d]~%", ix, iy),
+    printf(true, "~d ~d ~d ~g~%", ix-1, iy-1, iz-1, float(%lvl%[ix, iy]))))$
+  
+/*
+load("draw")$
+pic: 'draw2d(palette = [3, 3, 3],
+  image(ml, 0, 0, %nx%, %ny%),
+  points(plist))$
+
+plist: append(pic, rlist)$
+ev(plist, draw2d)$
+
+*/

@@ -1,0 +1,8 @@
+# levels
+punto -s 0.5 -G 7:1 -z 1:2:3 lvl.dat
+
+# only final image
+punto -s 2 -G 7:1 -z 3:4:9 punto.dat
+
+# final + target
+punto -s 2 -G 2.5:-0.7 -z 1:2:3 join.dat
