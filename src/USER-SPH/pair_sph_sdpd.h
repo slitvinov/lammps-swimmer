@@ -13,7 +13,7 @@
 
 #ifdef PAIR_CLASS
 
-PairStyle(sph/adami/sdpd,PairSPHSDPD)
+PairStyle(sph/sdpd,PairSPHSDPD)
 
 #else
 
@@ -38,7 +38,6 @@ class PairSPHSDPD : public Pair {
  protected:
   double *rho0, *soundspeed, *B;
   double **cut,**viscosity;
-  double *pb;
   double **temperature;
   int first;
 

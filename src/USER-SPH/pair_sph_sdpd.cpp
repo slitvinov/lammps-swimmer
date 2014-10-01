@@ -49,7 +49,6 @@ PairSPHSDPD::~PairSPHSDPD() {
     memory->destroy(soundspeed);
     memory->destroy(B);
     memory->destroy(viscosity);
-    memory->destroy(pb);
     memory->destroy(temperature);
 
     int n = atom->ntypes;
@@ -79,7 +78,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
   double **v = atom->v;
   double **x = atom->x;
   double **f = atom->f;
-  double **fb = atom->fb;
   double *rho = atom->rho;
   double *mass = atom->mass;
   double *de = atom->de;
@@ -128,7 +126,7 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     // compute pressure of atom i
-    double pi  = B[itype] * (rho[i] / rho0[itype] - 1.0);
+    double pi  = B[itype] * (rho[i] / rho0[itype] );
     double Vi  = imass/rho[i];
     double Vi2 = Vi * Vi;
 
@@ -150,9 +148,8 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
 	double Vj2 = Vj * Vj;
 
         // compute pressure
-	double pj  = B[jtype] * (rho[j] / rho0[jtype] - 1.0);
+	double pj  = B[jtype] * (rho[j] / rho0[jtype] );
 	double pij_wave = (rho[j]*pi + rho[i]*pj)/(rho[i] + rho[j]);
-	double pij_b    = pb[jtype];
 
         velx=vxtmp - v[j][0];
         vely=vytmp - v[j][1];
@@ -165,7 +162,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
 
         // total pair force & thermal energy increment
         double fpair =   - (Vi2 + Vj2) * pij_wave * wfd;
-	double fpair_b = - (Vi2 + Vj2) * pij_b    * wfd;
 
 	double frx, fry, frz, krnd;
 	double dt = update->dt;
@@ -202,11 +198,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
         f[i][1] += dely * fpair + vely * fvisc + fry;
         f[i][2] += delz * fpair + velz * fvisc + frz;
 
-	// change in background pressure
-        fb[i][0] += delx * fpair_b;
-        fb[i][1] += dely * fpair_b;
-        fb[i][2] += delz * fpair_b;
-
         // and change in density
         drho[i] += jmass * delVdotDelR * wfd;
 
@@ -217,10 +208,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
           f[j][0] -= delx * fpair + velx * fvisc + frx;
           f[j][1] -= dely * fpair + vely * fvisc + fry;
           f[j][2] -= delz * fpair + velz * fvisc + frz;
-
-	  fb[j][0] -= delx * fpair_b;
-	  fb[j][1] -= dely * fpair_b;
-	  fb[j][2] -= delz * fpair_b;
 
           de[j] += deltaE;
           drho[j] += imass * delVdotDelR * wfd;
@@ -256,7 +243,6 @@ void PairSPHSDPD::allocate() {
   memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
-  memory->create(pb, n + 1, "pair:pb");
 
   ker = new pSPHKernel*[n+1];
   for (int i=0; i<=n; ++i) {
@@ -273,7 +259,7 @@ void PairSPHSDPD::allocate() {
 void PairSPHSDPD::settings(int narg, char **arg) {
   if (narg != 1)
     error->all(FLERR,
-        "Illegal number of setting arguments for pair_style sph/adami/sdpd");
+        "Illegal number of setting arguments for pair_style sph/sdpd");
 
   seed = force->inumeric(FLERR,arg[0]);
   
@@ -288,9 +274,9 @@ void PairSPHSDPD::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHSDPD::coeff(int narg, char **arg) {
-  if (narg != 9)
+  if (narg != 8)
     error->all(FLERR,
-        "Incorrect args for pair_style sph/adami coefficients");
+        "Incorrect args for pair_style sph/sdpd coefficients");
   if (!allocated)
     allocate();
 
@@ -307,9 +293,8 @@ void PairSPHSDPD::coeff(int narg, char **arg) {
   double rho0_one = force->numeric(FLERR,arg[3]);
   double soundspeed_one = force->numeric(FLERR,arg[4]);
   double viscosity_one = force->numeric(FLERR,arg[5]);
-  double pb_one = force->numeric(FLERR,arg[6]);
-  double temperature_one = force->numeric(FLERR,arg[7]);
-  double cut_one = force->numeric(FLERR,arg[8]);
+  double temperature_one = force->numeric(FLERR,arg[6]);
+  double cut_one = force->numeric(FLERR,arg[7]);
 
   double B_one = soundspeed_one * soundspeed_one * rho0_one ;
 
@@ -318,7 +303,6 @@ void PairSPHSDPD::coeff(int narg, char **arg) {
     rho0[i] = rho0_one;
     soundspeed[i] = soundspeed_one;
     B[i] = B_one;
-    pb[i] = pb_one;
 
     for (int j = MAX(jlo,i); j <= jhi; j++) {
       viscosity[i][j] = viscosity_one;
@@ -345,7 +329,7 @@ void PairSPHSDPD::coeff(int narg, char **arg) {
 double PairSPHSDPD::init_one(int i, int j) {
 
   if (setflag[i][j] == 0) {
-    error->all(FLERR,"Not all pair sph/adami/sdpd coeffs are not set");
+    error->all(FLERR,"Not all pair sph/sdpd coeffs are not set");
   }
 
   cut[j][i] = cut[i][j];
