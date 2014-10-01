@@ -1,3 +1,5 @@
+Note that kT = kb * 300 / dr = 2.5875e-14
+
 |      | value in Litvinov2008 | units                |
 |------+-----------------------+----------------------|
 | c    |                  300. | length/time          |
@@ -10,7 +12,7 @@
 | rho0 |              1.000e+3 | mass/length^3        |
 | kT   |             2.485e-14 | length^2*mass/time^2 |
 
-Corresponding values in [[in.vars][lammps implementation]]. The Dimension are
+Corresponding values in [[in.vars][lammps implementation]]. The dimension are
 chosen to have L=1, rho=1, k*T=1.
 
 |             | value in LAMMPS | how to get it from Litvinov2008   |
