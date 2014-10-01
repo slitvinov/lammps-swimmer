@@ -1,7 +1,28 @@
-* How to add polymer?
+|      | value in Litvinov2008 | units                |
+|------+-----------------------+----------------------|
+| c    |                  300. | length/time          |
+| eta  |             10.000e-7 | mass/(length*time)   |
+| L    |              1.000e-5 | length               |
+| dr   |              1.667e-7 | length               |
+| rc   |              6.670e-7 | length               |
+| h    |              5.000e-7 | length               |
+| K    |                  5.30 | mass/time^2          |
+| rho0 |              1.000e+3 | mass/length^3        |
+| kT   |             2.485e-14 | length^2*mass/time^2 |
 
-#+BEGIN_SRC emacs-lisp
+Corresponding values in [[in.vars][lammps implementation]]. The Dimension are
+chosen to have L=1, rho=1, k*T=1.
+
+|             | value in LAMMPS | how to get it from Litvinov2008   |
+|-------------+-----------------+-----------------------------------|
+| c_LAMMPS    |            634. | c*sqrt(rho0)*L^(3/2)/sqrt(kT)     |
+| eta_LAMMPS  |        6.343e-4 | eta*sqrt(L)/(sqrt(rho0)*sqrt(kT)) |
+| L_LAMMPS    |            1.00 | 1                                 |
+| dr_LAMMPS   |        1.667e-2 | dr/L                              |
+| rc_LAMMPS   |        6.670e-2 | rc/L                              |
+| h_LAMMPS    |        5.000e-2 | h/L                               |
+| K_LAMMPS    |        2.133e+4 | K*L^2/kT                          |
+| rho0_LAMMPS |            1.00 | 1                                 |
+| kT_LAMMPS   |            1.00 | 1                                 |
 
 
-addpolymer.awk -v nb=10 -v np=full -v p_atom_type=4 -v p_bond_type=4
-#+END_SRC

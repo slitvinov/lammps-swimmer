@@ -15,7 +15,7 @@ dump_modify         dump_img pad 9
 #"dump               dump_ovito all custom ${saver_freq} ${dname}/dump.sph_sw id type x y z vx vy vz v_vtx v_vty v_vtz c_rho_peratom"
 #dump_modify         dump_ovito pad 9
 
-dump               dump_txt all custom ${saver_freq} ${dname}/dump.*.dat id type x y z vx vy vz v_vtx v_vty v_vtz c_rho_peratom
+dump               dump_txt all custom ${saver_freq} ${dname}/dump.*.dat id type x y z vx vy vz c_rho_peratom
 dump_modify        dump_txt pad 9
 
 #dump               dxyz  all xyz ${saver_freq} ${dname}/dump.xyz

@@ -4,7 +4,7 @@ include            in.vars
 dimension          ${ndim}
 units              si
 atom_modify        map array sort 0 0
-atom_style         hybrid meso/trans bond
+atom_style         hybrid meso bond
 comm_modify        vel yes
 log                ${dname}/lammps.log
 
@@ -20,16 +20,12 @@ mass           ${atom_type_solvent} ${sph_mass}
 mass           ${atom_type_polymer} ${sph_mass}
 
 # do full time integration
-fix                integrate_fix_full all  meso/trans
+fix                integrate_fix_full all  meso
 
 neighbor           0 bin
 neigh_modify       delay 0 every 1
 
 compute            rho_peratom all meso_rho/atom
-compute            vt_peratom  all meso_vt/atom
-variable           vtx         atom c_vt_peratom[1]
-variable           vty         atom c_vt_peratom[2]
-variable           vtz         atom c_vt_peratom[3]
 include            in.dump
 include            settimestep.lmp
 
@@ -47,7 +43,7 @@ fix                fprint_polymer all print ${printer_freq} "${physical_time} $(
 		   screen no file ${dname}/polymer.dat
 
 thermo_style       custom step v_reftemp c_rho_min c_rho_max
-thermo             ${saver_freq}
+thermo             ${printer_freq}
 
 ##################### production run
 include            in.pairs

@@ -3,18 +3,18 @@ load("dim.mac")$
 /* Litvinov2008 */
 Np: 3600;
 rho0: 1.0e3;   /* kg * m^(-3) */
-L:   1.5e-5;   /* m */
-h:   5.0e-7; /* m */
+L:    1.0e-5;   /* m */
+h:    5.0e-7; /* m */
 eta:  1e-6; /* kg * m^(-1) * s^(-1) */
-dr:  h/3;    /* m */
-T:   300 / dr; /* K */
-kb:  1.3806488e-23;
-p0:  0.5;   /* kg * m^(-1) * s^(-2) */
-gamma: 1.0;
+dr:   h/3;    /* m */
+T:    300; /* K */
+kb:   1.3806488e-23 / dr;
+c :   300;   /* m * s^(-1) */
 
 m:   'rho0 * 'dr^2;
 eq_kin: 2 * 'm*'vkin^2/2  = 'kT;
 vkin: rhs(solve(eq_kin, 'vkin)[2]);
+ev(vkin/c, infeval);
  
 rc: 6.67e-7;
 K : 5.3;
@@ -22,27 +22,28 @@ K : 5.3;
 'K*'rc^2/('kb*'T);
 ev(%, infeval);
 
-p(rho):= p0 * (rho/rho0);
-dp(rho):= ''(diff(p('rho), 'rho));
-c: sqrt(dp(rho0));
-
 kT: kb*T;
 rg20: 5e-7;
 rg40: 6e-7;
 
 %dim_base%: ['L, 'rho0, 'kT];
+forgformat(expr):=apply(printf, append([true, "| ~a | ~10,3g | ~a |~%" ],
+    org_units(expr)));
 
-etodms('eta);
-etodms('L);
-etodms('kT);
-etodms('c);
-etodms('h);
-etodms('dr);
-etodms('rc);
-etodms('K);
+fnumformat(expr):=apply(printf, append([true, "| ~a_LAMMPS| ~10,3g | ~a |~%" ],
+    fnumunits(expr)));
 
-etodms('rg20);
-etodms('rg40);
+plist: ['c, 'eta, 'L, 'dr, 'rc, 'K, 'rho0, 'kT];
 
-etodms('vkin);
-etodms('c);
+with_stdout("par.org",
+  printf(true, "| | ~a | ~a | ~%", "value in LAMMPS",
+    "how to get it from Litvinov2008"),
+  printf(true, "|-~%"),
+  maplist(fnumformat, plist));
+
+
+with_stdout("li.org",
+  printf(true, "| | ~a | ~a | ~%", "value in Litvinov2008",
+    "units"),
+  maplist(forgformat, plist))$
+
