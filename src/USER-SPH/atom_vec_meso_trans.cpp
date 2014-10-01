@@ -34,7 +34,7 @@ AtomVecMesoTrans::AtomVecMesoTrans(LAMMPS *lmp) : AtomVec(lmp)
 
   comm_x_only = 0; // we communicate not only x forward but also fb ...
   comm_f_only = 0; // we also communicate de and drho in reverse direction
-  size_forward = 11; // 3 + rho + e + + vt[3] + fb[3], that means we may only communicate 5 in hybrid
+  size_forward = 11; // 3 + rho + e + vt[3] + fb[3], that means we may only communicate 5 in hybrid
   size_reverse = 8; // 3 + drho + de + fb[3]
   size_border = 15; // 6 + rho + e + vt[3] + fb[3] + cv
   size_velocity = 3;
