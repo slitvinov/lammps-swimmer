@@ -1,8 +1,74 @@
+* Units of 2D SDPD
+
+We assume dimension for some of the variables and deduce the rest of
+the units from SDPD equations (see [[file:sdpd-dim.mac]] for details)
+
+** 3D
+
+This table is for reference, here all variables should have "usual" 3D
+units.
+
+|     | units              |
+|-----+--------------------|
+| rho | mass/length^3      |
+| d   | 1/length^3         |
+| dw  | 1/length^4         |
+| eta | mass/(length*time) |
+| m   | mass               |
+| p   | N/length^2         |
+| w   | 1/length^3         |
+| K   | N/length           |
+| kT  | J                  | 
+
+** 2D with [rho] = mass/length^2
+
+Assume $d$ (particle number density) dimension is 1/length^2 and
+dimension of $\rho$ (density) is mass/length^2. Physically: we go into
+"2D world", hydrodynamics quantities should have 2D
+interpretation. For example, stresses and pressure are forces per
+length (not "per area").
+
+|     | units         | comments     |
+|-----+---------------+--------------|
+| rho | mass/length^2 | unusal units |
+| d   | 1/length^2    |              |
+| dw  | 1/length^3    |              |
+| eta | mass/time     | unusal units |
+| m   | mass          |              |
+| p   | N/length      | unusal units |
+| w   | 1/length^2    |              |
+| K   | N/length      |              |
+| kT  | J             |              |
+
+** 2D with [rho] = mass/length^3
+
+Assume $d$ (particle number density) dimension is 1/length^2 and
+dimension of $\rho$ (density) is mass/length^3. Physically: we assume
+some length in third dimension ($L_{3D}$). This approach is often used
+in CFD. It is convenient if we have only hydrodynamics quantities, we
+do not even have to specify $L_{3D}$. But we have problems with
+"microscopic" quantities. I took $L_{3D} = dr$. It is roughly like
+assuming thickness of the slit where a polymer is places.
+
+|     | units              |              |
+|-----+--------------------+--------------|
+| rho | mass/length^3      |              |
+| d   | 1/length^2         |              |
+| dw  | 1/length^3         |              |
+| eta | mass/(length*time) |              |
+| m   | mass/length        | unusal units |
+| p   | N/length^2         |              |
+| w   | 1/length^2         |              |
+| K   | N/length^2         | unusal units |
+| kT  | J/length           | unusal units |
+
+
+* Values in LAMMPS
 Note that kT = kb * 300 / dr = 2.5875e-14
 
 |      | value in Litvinov2008 | units                |
 |------+-----------------------+----------------------|
-| c    |                  300. | length/time          |
+| c    |              1.903e+3 | length/time          |
 | eta  |             10.000e-7 | mass/(length*time)   |
 | L    |              1.000e-5 | length               |
 | dr   |              1.667e-7 | length               |
@@ -13,7 +79,7 @@ Note that kT = kb * 300 / dr = 2.5875e-14
 | kT   |             2.485e-14 | length^2*mass/time^2 |
 
 Corresponding values in [[in.vars][lammps implementation]]. The dimension are
-chosen to have L=1, rho=1, k*T=1.
+chosen to have L=1, rho0=1, k*T=1.
 
 |             | value in LAMMPS | how to get it from Litvinov2008   |
 |-------------+-----------------+-----------------------------------|

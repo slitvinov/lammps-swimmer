@@ -42,6 +42,11 @@ compute             rg          gpolymer gyration
 fix                fprint_polymer all print ${printer_freq} "${physical_time} $(c_rg)" &
 		   screen no file ${dname}/polymer.dat
 
+fix                fprint_moments all print ${printer_freq} &
+                   "${physical_time} $(vcm(all,x)) $(vcm(all,y)) $(vcm(all,z))  &
+		    $(vcm(gpolymer,x)) $(vcm(gpolymer,y)) $(vcm(gpolymer,z))" &
+		   screen no file ${dname}/moments.dat
+
 thermo_style       custom step v_reftemp c_rho_min c_rho_max
 thermo             ${printer_freq}
 

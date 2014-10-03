@@ -1,4 +1,11 @@
-load("dim.mac")$
+load("dim2b.mac")$
+/* %dim_base%: ['L, 'rho0, 'kT]; */
+todms(expr):= expr/natural_unit(expr, %dim_base%)[1]$
+etodms(expr):=block([e: todms(expr)], ev(e, infeval));
+
+fnumunits(expr):= [expr, etodms(expr), todms(expr)];
+
+org_units(expr):= [expr, ev(expr, infeval), dimension(expr)];
 
 /* Litvinov2008 */
 Np: 3600;
@@ -23,8 +30,8 @@ K : 5.3;
 ev(%, infeval);
 
 kT: kb*T;
-rg20: 5e-7;
-rg40: 6e-7;
+/* rg20: 5e-7;
+rg40: 6e-7; */
 
 %dim_base%: ['L, 'rho0, 'kT];
 forgformat(expr):=apply(printf, append([true, "| ~a | ~10,3g | ~a |~%" ],
@@ -41,9 +48,8 @@ with_stdout("par.org",
   printf(true, "|-~%"),
   maplist(fnumformat, plist));
 
-
 with_stdout("li.org",
   printf(true, "| | ~a | ~a | ~%", "value in Litvinov2008",
     "units"),
+  printf(true, "|-~%"),
   maplist(forgformat, plist))$
-

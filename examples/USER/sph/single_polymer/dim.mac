@@ -10,7 +10,7 @@ qput(kb   , length^2*mass*time^(-2)*'Kelvin^(-1), dimension);
 qput(T    , 'Kelvin,                              dimension);
 put('kT    , expand(dimension('kb*'T)),       dimension);
 
-qput(p0   , mass*length^(-1)*time^(-2),      dimension);
+qput(p   , mass*length^(-1)*time^(-2),      dimension);
 qput(c    , length/time,                     dimension);
 qput(vkin    , length/time,                     dimension);
 qput(rc   , length,                     dimension);
