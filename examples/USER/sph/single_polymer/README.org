@@ -46,10 +46,10 @@ All variables have "usual" 3D units.
 
 ** 2D with [rho] = mass/length^2
 
-Assume d (particle number density) dimension is 1/length^2 and
-dimension of \rho (density) is mass/length^2. Physically: we go into
-"2D world", hydrodynamics quantities have 2D interpretations. For
-example, stresses and pressure are forces per length (not "per area").
+Assume =d= dimension is =1/length^2= and dimension of =rho= is
+=mass/length^2=. Physically: we go into "2D world", hydrodynamics
+quantities have 2D interpretations. For example, stresses and pressure
+are forces per length (not "per area").
 
 |     | description              | units         | comments     |
 |-----+--------------------------+---------------+--------------|
@@ -66,14 +66,13 @@ example, stresses and pressure are forces per length (not "per area").
 
 ** 2D with [rho] = mass/length^3
 
-Assume $d$ (particle number density) dimension is $1/length^2$ and
-dimension of $\rho$ (density) is mass/length^3. Physically: we assume
-some length in third dimension ($L_{3D}$). This approach is often used
-in CFD. It is convenient if we have only hydrodynamics quantities, we
-do not even have to specify $L_{3D}$. But we have problems with
-"microscopic" quantities (m, kT, and K). I took $$L_{3D} = dr$$. It is
-roughly like assuming thickness of the slit where a "2D" polymer is
-placed.
+Assume =d= dimension is =1/length^2= and dimension of =rho= is
+=mass/length^3=. Physically: we assume some length in third dimension
+(L_{3D}). This approach is often used in CFD. It is convenient if we
+have only hydrodynamics quantities, we do not even have to specify
+L_{3D}. But we have problems with "microscopic" quantities (=m=, =kT=,
+and =K=). I took L_{3D} = dr. It is roughly like assuming thickness of
+the slit where a "2D" polymer is placed.
 
 |     | description              | units              | comments     |
 |-----+--------------------------+--------------------+--------------|
