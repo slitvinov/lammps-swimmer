@@ -1,12 +1,35 @@
 * Units of 2D SDPD
 
-We assume dimension for some of the variables and deduce the rest of
-the units from SDPD equations (see [[file:sdpd-dim.mac]] for details)
+We assume dimensions for some of the variables and deduce the rest of
+the units from SDPD equations (see [[file:sdpd-dim.mac]] for details). I
+*omit sum symbols*.
+
+#+BEGIN_EXAMPLE
+eq: []$
+/* pressure force (8) */
+eq <- 'dv = -1/'m * (p[i]/d[i]^2 + p[j]/d[j]^2) * 'dw * 'e * 'dt;
+/* viscose force (10) */
+eq <- 'dv = 'eta/'m * (1/d[i]^2 + 1/d[j]^2) * 'dw/r[i,j] * (v[i] - v[j]) * 'dt;
+/* random force (13) and (14) */
+eq <- 'dv = sqrt(-4*'kT *'eta*(1/d[i]^2 + 1/d[j]^2)*'dw/r[i,j]) /  'm * sqrt('dt);
+/* FENE force (16) */
+eq <- 'dv = 'K*'r/(1-('r/'rc)^2) /  'm *'dt;
+/* equation of state */
+eq <- p[i] = 'c^2*rho[i];
+/* partice number density  (7) */
+eq <- d[i] = 'w;
+/* derivative of the kernel */
+eq <- 'diff('w, 'r) = 'dw;
+/* definition of partice density */
+eq <- 'rho = 'm*'d;
+#+END_EXAMPLE
+
+To make all of the above equations dimensionally consistent we can
+choose the following units.
 
 ** 3D
 
-This table is for reference, here all variables should have "usual" 3D
-units.
+All variables should have "usual" 3D units.
 
 |     | units              |
 |-----+--------------------|
@@ -24,9 +47,8 @@ units.
 
 Assume $d$ (particle number density) dimension is 1/length^2 and
 dimension of $\rho$ (density) is mass/length^2. Physically: we go into
-"2D world", hydrodynamics quantities should have 2D
-interpretation. For example, stresses and pressure are forces per
-length (not "per area").
+"2D world", hydrodynamics quantities have 2D interpretations. For
+example, stresses and pressure are forces per length (not "per area").
 
 |     | units         | comments     |
 |-----+---------------+--------------|
@@ -50,7 +72,7 @@ do not even have to specify $L_{3D}$. But we have problems with
 "microscopic" quantities. I took $L_{3D} = dr$. It is roughly like
 assuming thickness of the slit where a polymer is places.
 
-|     | units              |              |
+|     | units              | comments     |
 |-----+--------------------+--------------|
 | rho | mass/length^3      |              |
 | d   | 1/length^2         |              |
