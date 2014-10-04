@@ -51,18 +51,18 @@ Assume =d= dimension is =1/length^2= and dimension of =rho= is
 quantities have 2D interpretations. For example, stresses and pressure
 are forces per length (not "per area").
 
-|     | description              | units         | comments     |
-|-----+--------------------------+---------------+--------------|
-| rho | density                  | mass/length^2 | unusal units |
-| d   | particle number density  | 1/length^2    |              |
-|-----+--------------------------+---------------+--------------|
-| dw  | derivative of SPH kernel | 1/length^3    |              |
-| eta | viscosity                | mass/time     | unusal units |
-| m   | particle mass            | mass          |              |
-| p   | pressure                 | N/length      | unusal units |
-| w   | SPH kernel               | 1/length^2    |              |
-| K   | FENE spring constants    | N/length      |              |
-| kT  | thermal energy           | J             |              |
+|     | description              | units         | comments |
+|-----+--------------------------+---------------+----------|
+| rho | density                  | mass/length^2 | not 3D   |
+| d   | particle number density  | 1/length^2    |          |
+|-----+--------------------------+---------------+----------|
+| dw  | derivative of SPH kernel | 1/length^3    |          |
+| eta | viscosity                | mass/time     | not 3D   |
+| m   | particle mass            | mass          |          |
+| p   | pressure                 | N/length      | not 3D   |
+| w   | SPH kernel               | 1/length^2    |          |
+| K   | FENE spring constants    | N/length      |          |
+| kT  | thermal energy           | J             |          |
 
 ** 2D with [rho] = mass/length^3
 
@@ -74,18 +74,19 @@ L_{3D}. But we have problems with "microscopic" quantities (=m=, =kT=,
 and =K=). I took L_{3D} = dr. It is roughly like assuming thickness of
 the slit where a "2D" polymer is placed.
 
-|     | description              | units              | comments     |
-|-----+--------------------------+--------------------+--------------|
-| rho | density                  | mass/length^3      |              |
-| d   | particle number density  | 1/length^2         |              |
-|-----+--------------------------+--------------------+--------------|
-| dw  | derivative of SPH kernel | 1/length^3         |              |
-| eta | viscosity                | mass/(length*time) |              |
-| m   | particle mass            | mass/length        | unusal units |
-| p   | pressure                 | N/length^2         |              |
-| w   | SPH kernel               | 1/length^2         |              |
-| K   | FENE spring constants    | N/length^2         | unusal units |
-| kT  | thermal energy           | J/length           | unusal units |
+|     | description              | units              | comments |
+|-----+--------------------------+--------------------+----------|
+| rho | density                  | mass/length^3      |          |
+| d   | particle number density  | 1/length^2         |          |
+|-----+--------------------------+--------------------+----------|
+| dw  | derivative of SPH kernel | 1/length^3         |          |
+| eta | viscosity                | mass/(length*time) |          |
+| m   | particle mass            | mass/length        | not 3D   |
+| p   | pressure                 | N/length^2         |          |
+| w   | SPH kernel               | 1/length^2         |          |
+| K   | FENE spring constants    | N/length^2         | not 3D   |
+| kT  | thermal energy           | J/length           | not 3D   |
+
 
 
 
