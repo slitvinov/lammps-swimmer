@@ -9,27 +9,43 @@ infix("<-", 180, 20);
 
 /**** set units for some variables ****/
 
-/* r[i,j] is a distance from partice i to partice j */
 qput(r,  length,      di);
-/* maximum extension in FENE spring */
+qput(r,  "a distance from partice i to partice j", description);
+
 qput(rc, length,      di);
-/* unit vector */
+qput(r,  " maximum extension in FENE spring", description);
+
 qput(e,  1,           di);
+qput(e,  "unit vector",                       description);
 
-/* a step of velocity */
 qput(dv, length/time, di);
-/* particle velocity */
-qput(v ,  length/time,di);
-/* speed of sound */
-qput(c,    length/time,      di);
-/* time step */
-qput(dt  , time,              di);
+qput(dv, "a step of velocity",                description);
 
-/* density  */
+qput(v ,  length/time,di);
+qput(v, "particle velocity",                description);
+
+qput(c,    length/time,      di);
+qput(c, "speed of sound",                description);
+
+qput(dt  , time,              di);
+qput(dt  , "time step",                  description);
+
 qput(rho , mass/length^3,    di);
-/* particle number density */
+qput(rho, "density",       description);
+
 qput(d   , 1/length^2   ,    di);
+qput(d   , "particle number density", description);
 /************************************/
+
+/* "unknown" units */
+qput(m, "particle mass", description);
+qput(w, "SPH kernel", description);
+qput(dw, "derivative of SPH kernel", description);
+qput(p, "pressure", description);
+qput(K, "FENE spring constants", description);
+qput(kT, "thermal energy", description);
+qput(eta, "viscosity", description);
+/*******************/
 
 eq: []$
 /* pressure force (8) */
@@ -53,7 +69,7 @@ eq <- 'rho = 'm*'d;
 eq_d: map(lambda([e], map(di, e)), eq);
 
 /* solve the system to get unknown units */
-load(to_poly_solve)$
+load(to_poly_solve);
 so: args(to_poly_solve(eq_d,
     [di(m), di(w), di(dw), di(p), di(K), di(kT), di(eta)]))[1];
 
@@ -66,8 +82,10 @@ defrule(toNp, di('p)  = %e%,  di('p) = subst('mass='N/(length/time^2), %e%)) $
 so_jn: apply1(so, toJ, toNk, toNp);
 so_jn: append( ['dj(rho) = di(rho), 'dj(d) = di(d)], so_jn);
 
-format_solution(e):= printf(true, "| ~a | ~a |~%", args(lhs(e))[1], rhs(e));
+format_solution(e):= block([v: args(lhs(e))[1]],
+  printf(true, "| ~a | ~a | ~a |~%", v, get(v, description), rhs(e)));
+  
 with_stdout("dim.org",
-  printf(true, "|  | ~a | ~%", "units"),
+  printf(true, "|  | ~a | ~a | ~%", "description", "units"),
   printf(true, "|-~%"),
   maplist(format_solution, so_jn));
