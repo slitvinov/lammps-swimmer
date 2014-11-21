@@ -64,7 +64,7 @@ mmy(j):=min(%ny%, max(1, j));
 %ymax%: %ymin% + (%xmax%-%xmin%)*%ny%/%nx%;
 
 /* the number of particlse */
-define_variable(Ntotal, 20000, fixnum);
+define_variable(Ntotal, 5000, fixnum);
 %Ntotal%: Ntotal;
 
 /* domain volume */
@@ -197,7 +197,6 @@ for lst in flat_spl(spl) do block([
   for iy: y1 thru y2 do
   for ix: x1 thru x2 do
   %lvl%[ix,iy]: (x2 - x1 + 1)*%dx%)$
-
 
 with_stdout("lvl.dat",
   for iz thru %nz% do

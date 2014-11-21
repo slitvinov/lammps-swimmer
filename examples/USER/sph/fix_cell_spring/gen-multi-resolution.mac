@@ -129,25 +129,25 @@ block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
       [x1,   xc, yc+1, y2,   N[4], level+1]]))$
 
 /* is_even(q, V):= is( abs(q[5] - Npart*element_volume(q)/V) <%min_part_delta%)$ */
-element_fraction(q, ink):= abs( - element_getink(q)/ink);
-element_error(nlist, ink):= xreduce("+", maplist(lambda([q], element_fraction(q, ink)),
-    nlist));
+element_fraction(el, ink, V):= abs(element_getink(el) - ink*element_volume(el)/V);
+element_error(nlist, ink, V):= xreduce("+", maplist(lambda([q],
+    element_fraction(q, ink, V)), nlist));
 
 any_ink_subscells(nlist):= every(lambda([q], q < %ink_per_particle%),
     maplist('element_getink, nlist));
 
-%min_part_delta%: 2;
+%min_ink_delta%: %ink_per_particle%/2;
 %max_level%     : min(9, floor(log(%nx%)/log(2)));
 split_or_not(lst_in):=
 block([lst: copy(lst_in)],
   block([x1: lst[1], x2: lst[2], y1: lst[3], y2: lst[4],
-    Npart: lst[5], level: lst[6], ink,
+    Npart: lst[5], level: lst[6], ink, V,
     listarith: true, numer: true],
     if Npart<1                                     then return(lst),
     if level>=%max_level%                          then return(lst),
 /*    if getink[x1, x2, y1, y2]<%ink_per_particle%   then return(lst), */
-    nlist: split_element(lst),  ink: element_getink(lst),
-    if element_error(nlist, ink)<%min_part_delta% then return(lst),
+    nlist: split_element(lst),  ink: element_getink(lst),  V: element_volume(lst),
+    if element_error(nlist, ink, V)<%min_ink_delta% then return(lst),
 /*    if any_ink_subscells(nlist) then              return(lst), */
     maplist('split_or_not, nlist)))$
 

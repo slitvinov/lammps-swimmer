@@ -6,3 +6,23 @@ punto -s 2 -G 7:1 -z 3:4:9 punto.dat
 
 # final + target
 punto -s 2 -G 2.5:-0.7 -z 1:2:3 join.dat
+
+Dot pattern generation technique using smoothed particle
+hydrodynamics.
+
+In computer graphics the problem of stippling can be formulated as
+follows: given a grayscale image and the number of circular black dots
+of equal size to generate a distribution of dots matching the tones of
+the image; in addition the distribution should be free of sampling
+artifacts. Such a distribution (even, isotropic, yet unstructured) is
+often called "blue noise".
+
+We present a novel algorithm to generate blue noise distribution using
+multiresolution smoothed particle hydrodynamics (SPH). The method
+involves iterative displacements of dots starting from a structured
+configuration closely matching the image. The method can take
+advantage of parallels implementations and performance tweaks in
+existing SPH packages. Simple physical interpretation of the method
+allows for intuitive extensions to more complex problems (sampling on
+surfaces, sampling in high dimensions, sampling with non-positional
+factors).

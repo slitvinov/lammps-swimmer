@@ -81,8 +81,8 @@ namespace LAMMPS_NS {
 
   double get_target_cutoff (double m, int nn, double rhot, double csize) {
     double rhot_cut = std::max(rhot, 1e-9);
-    //    return sqrt(m*nn/rhot_cut)/sqrt(3.141592653589793);
-    return nn*csize;
+    return sqrt(m*nn/rhot_cut)/sqrt(3.141592653589793);
+    //    return nn*csize;
   }
   
 }

@@ -58,6 +58,6 @@ thermo             10
 
 fix                f2d all enforce2d
 
-variable           k_fene      equal 0.0
+variable           k_fene      equal 2e-3
 fix                f2cs all cell/spring ${k_fene}
 run                100000

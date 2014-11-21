@@ -161,8 +161,8 @@ void PairSPHBN::compute(int eflag, int vflag) {
         double fj = pj  / (rho[j] * rho[j]) * wfdj;
 
         // total pair force & thermal energy increment
-	if (rho0j<RHO_EPSILON) fj = 2*fi;
-	if (rho0i<RHO_EPSILON) fi = 2*fj;
+	if (rho0j<RHO_EPSILON) fj = fi;
+	if (rho0i<RHO_EPSILON) fi = fj;
         fpair = - imass * jmass * (fi + fj);
 
 	if (rho0i>RHO_EPSILON) {
