@@ -1,0 +1,91 @@
+load("dimension")$
+
+/* use `di' instead of `dimension' */
+alias(di, dimension);
+
+/* helpful operator */
+infix("<-", 180, 20);
+"<-"(a, b)::= buildq([a, b], (a: endcons(b, a), b));
+
+/**** set units for some variables ****/
+
+qput(r,  length,      di);
+qput(r,  "a distance from partice i to partice j", description);
+
+qput(rc, length,      di);
+qput(r,  " maximum extension in FENE spring", description);
+
+qput(e,  1,           di);
+qput(e,  "unit vector",                       description);
+
+qput(dv, length/time, di);
+qput(dv, "a step of velocity",                description);
+
+qput(v ,  length/time,di);
+qput(v, "particle velocity",                description);
+
+qput(c,    length/time,      di);
+qput(c, "speed of sound",                description);
+
+qput(dt  , time,              di);
+qput(dt  , "time step",                  description);
+
+qput(rho , mass/length^3,    di);
+qput(rho, "density",       description);
+
+qput(d   , 1/length^2   ,    di);
+qput(d   , "particle number density", description);
+/************************************/
+
+/* "unknown" units */
+qput(m, "particle mass", description);
+qput(w, "SPH kernel", description);
+qput(dw, "derivative of SPH kernel", description);
+qput(p, "pressure", description);
+qput(K, "FENE spring constants", description);
+qput(kT, "thermal energy", description);
+qput(eta, "viscosity", description);
+/*******************/
+
+eq: []$
+/* pressure force (8) */
+eq <- 'dv = -1/'m * (p[i]/d[i]^2 + p[j]/d[j]^2) * 'dw * 'e * 'dt;
+/* viscose force (10) */
+eq <- 'dv = 'eta/'m * (1/d[i]^2 + 1/d[j]^2) * 'dw/r[i,j] * (v[i] - v[j]) * 'dt;
+/* random force (13) and (14) */
+eq <- 'dv = sqrt(-4*'kT *'eta*(1/d[i]^2 + 1/d[j]^2)*'dw/r[i,j]) /  'm * sqrt('dt);
+/* FENE force (16) */
+eq <- 'dv = 'K*'r/(1-('r/'rc)^2) /  'm *'dt;
+/* equation of state */
+eq <- p[i] = 'c^2*rho[i];
+/* partice number density  (7) */
+eq <- d[i] = 'w;
+/* derivative of the kernel */
+eq <- 'diff('w, 'r) = 'dw;
+/* definition of partice density */
+eq <- 'rho = 'm*'d;
+
+/* a system of equations for units */
+eq_d: map(lambda([e], map(di, e)), eq);
+
+/* solve the system to get unknown units */
+load(to_poly_solve);
+so: args(to_poly_solve(eq_d,
+    [di(m), di(w), di(dw), di(p), di(K), di(kT), di(eta)]))[1];
+
+/* introduce Joules and Newtons in some places */
+matchdeclare(%e%, true)$
+defrule(toJ, di('kT) = %e%, di('kT)  = subst('mass='J/(length^2/time^2), %e%)) $
+defrule(toNk, di('K)  = %e%,  di('K) = subst('mass='N/(length/time^2), %e%)) $
+defrule(toNp, di('p)  = %e%,  di('p) = subst('mass='N/(length/time^2), %e%)) $
+
+so_jn: apply1(so, toJ, toNk, toNp);
+so_jn: append( ['dj(rho) = di(rho), 'dj(d) = di(d)], so_jn);
+
+format_solution(e):= block([v: args(lhs(e))[1]],
+  printf(true, "| ~a | ~a | ~a |~%", v, get(v, description), rhs(e)));
+  
+with_stdout("dim.org",
+  printf(true, "|  | ~a | ~a | ~%", "description", "units"),
+  printf(true, "|-~%"),
+  maplist(format_solution, so_jn));
