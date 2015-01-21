@@ -1,0 +1,27 @@
+load("dimension");
+qput(rho0, mass/length^3, dimension);
+qput(L   , length, dimension);
+qput(eta   , mass/length/time, dimension);
+
+qput(h    , length, dimension);
+qput(dr   , length, dimension);
+
+qput(kb   , length^2*mass*time^(-2)*'Kelvin^(-1), dimension);
+qput(T    , 'Kelvin,                              dimension);
+put('kT    , expand(dimension('kb*'T)),       dimension);
+
+qput(p   , mass*length^(-1)*time^(-2),      dimension);
+qput(c    , length/time,                     dimension);
+qput(vkin    , length/time,                     dimension);
+qput(rc   , length,                     dimension);
+qput(rg20,  length,                     dimension);
+qput(rg40,  length,                     dimension);
+put('K     , dimension('kb*'T)/length^2,  dimension);
+
+/* %dim_base%: ['L, 'rho0, 'kT]; */
+todms(expr):= expr/natural_unit(expr, %dim_base%)[1]$
+etodms(expr):=block([e: todms(expr)], ev(e, infeval));
+
+fnumunits(expr):= [expr, etodms(expr), todms(expr)];
+
+org_units(expr):= [expr, ev(expr, infeval), dimension(expr)];

@@ -1,0 +1,47 @@
+load("dimension");
+
+qput(rho0, mass/length^3, dimension);
+qput(L   , length, dimension);
+qput(eta   , mass/length/time, dimension);
+
+qput(h    , length, dimension);
+qput(dr   , length, dimension);
+
+qput(kb   , length^2*mass*time^(-2)*'Kelvin^(-1)  , dimension);
+
+qput(T    , 'Kelvin,                              dimension);
+put('kT    , expand(dimension('kb*'T)),       dimension);
+
+qput(p   , mass*length^(-1)*time^(-2),      dimension);
+qput(c    , length/time,                     dimension);
+qput(vkin    , length/time,                     dimension);
+qput(rc   , length,                     dimension);
+qput(rg20,  length,                     dimension);
+qput(rg40,  length,                     dimension);
+put('K     , dimension('kb*'T)/length^2,  dimension);
+
+/* kernel and the first derivative of the kernel
+  dimension can be deduced from the normalization
+  relationship:
+  integrate(w, V) = 1
+*/
+qput(w     , 1/length^3                , dimension);
+qput(dw    , 1/length^3 * 1/length     , dimension);
+
+/* the particle density */
+qput(d    ,  1/length^3                , dimension);
+
+/* acceleration */
+qput(a      , length/time^2,             dimension);
+/* velocity */
+qput(v      , length/time  ,             dimension);
+
+/* particle distance  */
+qput(r      , length,                    dimension);
+
+/* particle mass */
+qput(m      , mass,                      dimension);
+
+/* time step */
+qput(dt      , time     ,                    dimension);
+
