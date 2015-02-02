@@ -15,7 +15,6 @@ if ${ndim}==2 then "variable domain_volume equal ${Lx}*${Ly}" else "variable dom
 variable       sph_mass             equal ${sph_rho}*${domain_volume}/${Natoms}
 
 include        in.polymers
-include        in.wall
 
 mass           ${atom_type_solvent} ${sph_mass}
 mass           ${atom_type_polymer} ${sph_mass}
@@ -50,9 +49,14 @@ fix                fprint_moments all print ${printer_freq} &
 
 thermo_style       custom step v_reftemp c_rho_min c_rho_max
 thermo             ${printer_freq}
+timestep           ${dt}
+include            in.pairs
+
+#####################
+fix                freeze_polymer gpolymer setforce         0 0 0
+run                ${prerun_nstep}
+include            in.wall
+unfix              freeze_polymer
 
 ##################### production run
-include            in.pairs
-timestep           ${dt}
-
 run                ${nstep}

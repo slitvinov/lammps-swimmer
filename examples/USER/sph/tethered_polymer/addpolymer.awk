@@ -26,7 +26,7 @@ BEGIN {
     has_bonds_block = 1
 }
 
-# output everythin
+# output everything
 pass==1 {
     print
     next
@@ -78,4 +78,3 @@ flag_polymer && NF && in_atoms && pass==2 {
 	i_solvent++
     }
 }
-

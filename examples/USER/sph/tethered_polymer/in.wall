@@ -6,8 +6,8 @@ variable rwall equal ${Lx}-${nwall}*${dx}
 
 region   rwall block ${rwall} INF INF INF INF INF
 group	 rwall region rwall
-velocity rwall set 0 0 0
-fix      rwall rwall setforce         0 ${wall_vel} 0
+velocity rwall set                    0 ${wall_vel} 0
+fix      rwall rwall setforce         0           0 0
 
 
 region   lwall block INF ${lwall} INF INF INF INF
