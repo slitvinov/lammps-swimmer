@@ -1,6 +1,6 @@
 # move two atoms with SPH
 units           si
-atom_style      meso/trans
+atom_style      meso
 atom_modify     map array sort 0 0
 
 region		box block 0 10 0 10 0 10 units box
@@ -26,15 +26,14 @@ variable        rho0   equal 1
 variable        cutoff equal 1
 variable        soundspeed equal 1
 variable        viscosity  equal 1
-variable        pb         equal 10
 variable        kb         equal 1.3806488e-23
 #variable        T          equal 1/${kb}
 variable        T          equal 0
 
-pair_style      sph/adami/sdpd 123456
-pair_coeff	* * lucy ${rho0} ${soundspeed} ${viscosity} ${pb} ${T} ${cutoff}
+pair_style      sph/sdpd 123456
+pair_coeff	* * lucy ${rho0} ${soundspeed} ${viscosity} ${T} ${cutoff}
 
-fix	        1 all meso/trans
+fix	        1 all meso
 neigh_modify    delay 0 every 1
 
 timestep        0.02

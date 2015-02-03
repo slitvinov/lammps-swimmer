@@ -4,7 +4,6 @@ rho0  : 1;
 cutoff: 1;
 soundspeed: 1;
 viscosity: [1, 1];
-pb       : 10;
 
 h: cutoff;
 
@@ -26,7 +25,7 @@ dw(dr):= block([r: vabs(dr)], dr/r * ''(diff(w_scalar(r), r)));
 
 /* Eq. (28) */
 c0: soundspeed;
-P_fun(rho):= ''( (c0^2*rho0) * ( ('rho/rho0) - 1) );
+P_fun(rho):= ''( (c0^2*rho0) * ( ('rho/rho0)) );
 
 x: [[5, 5, 5], [5.5, 5, 5]];
 v: [[0, 0, 0], [1,   0, 0]];
@@ -42,11 +41,7 @@ tov(v):= flatten(args(v));
 sph_force_loop(expr)::= buildq([expr, n: length(x)], create_list(
     sum(if i#j then expr else 0, j, 1, n),
     i, 1, n));
-pair_sph_taitwater_morris(x, v, rho):= block([Fc, Fd, Fb, P, drho, numer: true],
-  Fb: sph_force_loop( block([Vi: m[i]/rho[i],
-      Vj: m[j]/rho[j],
-      pij_wave: (rho[j]*pb + rho[i]*pb)/(rho[i] + rho[j])],
-      - (Vi^2 + Vj^2) * pij_wave * dw(x[i] - x[j]))),
+pair_sph_taitwater_morris(x, v, rho):= block([Fc, Fd, P, drho, numer: true],
   P : maplist('P_fun, rho),
   Fc: sph_force_loop( block([Vi: m[i]/rho[i],
       Vj: m[j]/rho[j],
@@ -63,13 +58,13 @@ pair_sph_taitwater_morris(x, v, rho):= block([Fc, Fd, Fb, P, drho, numer: true],
       )),
   print(Fr),
   drho: sph_force_loop(m[j]*(v[i]-v[j]).dw(x[i] - x[j])),
-  [Fc + Fd + Fr, Fb, drho]);
+  [Fc + Fd + Fr, drho]);
 
-sph_velocity_verlet_step(x0, v0, rho0, f0, fb0, drho0):=
+sph_velocity_verlet_step(x0, v0, rho0, f0, drho0):=
 block([numer: true, ftm2v, dtv, dtfm, dtv,
   x: copylist(x0), v: copylist(v0),
   rho: copylist(rho0), f: copylist(f0),
-  fb: copylist(fb0), drho: copylist(drho0)
+  drho: copylist(drho0)
   ],
   
   ftm2v: 1,
@@ -79,19 +74,19 @@ block([numer: true, ftm2v, dtv, dtfm, dtv,
 
   rho : rho + dtf*drho,
   v   : v + dtfm*f,
-  x   : x + dtv*v  + dtv * dtfm * fb,
-  [f, fb, drho]: pair_sph_taitwater_morris(x, v, rho),
+  x   : x + dtv*v,
+  [f, drho]: pair_sph_taitwater_morris(x, v, rho),
 
   v   : v + dtfm*f,
   rho : rho + dtf*drho,
-  [x, v, rho, f, fb, drho]);
+  [x, v, rho, f, drho]);
 
 dt: 0.02;
-[f, fb, drho]: pair_sph_taitwater_morris(x, v, rho);
+[f, drho]: pair_sph_taitwater_morris(x, v, rho);
 
 /*
 Reference:
-<lmp> -in in.sdpd_two_atoms_transport_velocity
+<lmp> -in in.sdpd_two_atoms
 */
-thru 10 do [x, v, rho, f, fb, drho]: sph_velocity_verlet_step(x, v, rho, f, fb, drho);
+thru 10 do [x, v, rho, f, drho]: sph_velocity_verlet_step(x, v, rho, f, drho);
 [f[1][1],  x[1][1], v[1][1]];
