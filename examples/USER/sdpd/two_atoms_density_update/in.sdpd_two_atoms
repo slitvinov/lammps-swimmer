@@ -1,6 +1,6 @@
 # move two atoms with SPH
 units           si
-atom_style      meso
+atom_style      sdpd
 atom_modify     map array sort 0 0
 
 region		box block 0 10 0 10 0 10 units box
