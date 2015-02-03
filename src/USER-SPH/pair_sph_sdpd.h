@@ -37,6 +37,7 @@ class PairSPHSDPD : public Pair {
 
  protected:
   double *rho0, *soundspeed, *B;
+  double *gamma;
   double **cut,**viscosity;
   double **temperature;
   int first;

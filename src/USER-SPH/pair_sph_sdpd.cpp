@@ -47,6 +47,7 @@ PairSPHSDPD::~PairSPHSDPD() {
     memory->destroy(cut);
     memory->destroy(rho0);
     memory->destroy(soundspeed);
+    memory->destroy(gamma);
     memory->destroy(B);
     memory->destroy(viscosity);
     memory->destroy(temperature);
@@ -126,7 +127,7 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
     imass = mass[itype];
 
     // compute pressure of atom i
-    double pi  = B[itype] * (rho[i] / rho0[itype] );
+    double pi  = B[itype] * pow(rho[i] / rho0[itype], gamma[itype] );
     double Vi  = imass/rho[i];
     double Vi2 = Vi * Vi;
 
@@ -148,7 +149,7 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
 	double Vj2 = Vj * Vj;
 
         // compute pressure
-	double pj  = B[jtype] * (rho[j] / rho0[jtype] );
+	double pj  = B[jtype] * pow(rho[j] / rho0[jtype], gamma[jtype] );
 	double pij_wave = (rho[j]*pi + rho[i]*pj)/(rho[i] + rho[j]);
 
         velx=vxtmp - v[j][0];
@@ -240,6 +241,7 @@ void PairSPHSDPD::allocate() {
 
   memory->create(rho0, n + 1, "pair:rho0");
   memory->create(soundspeed, n + 1, "pair:soundspeed");
+  memory->create(gamma, n + 1, "pair:gamma");
   memory->create(B, n + 1, "pair:B");
   memory->create(cut, n + 1, n + 1, "pair:cut");
   memory->create(viscosity, n + 1, n + 1, "pair:viscosity");
@@ -274,7 +276,7 @@ void PairSPHSDPD::settings(int narg, char **arg) {
  ------------------------------------------------------------------------- */
 
 void PairSPHSDPD::coeff(int narg, char **arg) {
-  if (narg != 8)
+  if (narg != 9)
     error->all(FLERR,
         "Incorrect args for pair_style sph/sdpd coefficients");
   if (!allocated)
@@ -294,14 +296,16 @@ void PairSPHSDPD::coeff(int narg, char **arg) {
   double soundspeed_one = force->numeric(FLERR,arg[4]);
   double viscosity_one = force->numeric(FLERR,arg[5]);
   double temperature_one = force->numeric(FLERR,arg[6]);
-  double cut_one = force->numeric(FLERR,arg[7]);
+  double gamma_one       = force->numeric(FLERR,arg[7]);
+  double cut_one = force->numeric(FLERR,arg[8]);
 
-  double B_one = soundspeed_one * soundspeed_one * rho0_one ;
+  double B_one = soundspeed_one * soundspeed_one * rho0_one / gamma_one;
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
     rho0[i] = rho0_one;
     soundspeed[i] = soundspeed_one;
+    gamma[i] = gamma_one;
     B[i] = B_one;
 
     for (int j = MAX(jlo,i); j <= jhi; j++) {
