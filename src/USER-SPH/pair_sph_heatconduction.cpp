@@ -70,8 +70,15 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
   double **x = atom->x;
   double *e = atom->e;
   double *de = atom->de;
-  double *mass = atom->mass;
   double *rho = atom->rho;
+  double *rmass, *mass;
+  if (atom->rmass_flag) {
+    rmass = atom->rmass;
+    mass  = NULL;
+  } else {
+    rmass = NULL;
+    mass = atom->mass;
+  }
   double *cv = atom->cv;
   int *type = atom->type;
   int nlocal = atom->nlocal;
@@ -95,7 +102,12 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
     jlist = firstneigh[i];
     jnum = numneigh[i];
 
-    imass = mass[itype];
+    if (atom->rmass) {
+      imass = rmass[i];
+    } else {
+      imass = mass[itype];
+    }
+
 
     for (jj = 0; jj < jnum; jj++) {
       j = jlist[jj];
@@ -106,13 +118,17 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
       delz = ztmp - x[j][2];
       rsq = delx * delx + dely * dely + delz * delz;
       jtype = type[j];
-      jmass = mass[jtype];
 
       if (rsq < cutsq[itype][jtype]) {
         // kernel function
         wfd = ker[itype][jtype]->dw_per_r(sqrt(rsq), cut[itype][jtype]);
 
-        jmass = mass[jtype];
+	if (atom->rmass) {
+	  jmass = rmass[j];
+	} else {
+	  jmass = mass[jtype];
+	}
+
         D = alpha[itype][jtype]; // diffusion coefficient
 
         double Ti = sph_energy2t(e[i], cv[i]);

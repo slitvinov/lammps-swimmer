@@ -80,7 +80,16 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
   double **x = atom->x;
   double **f = atom->f;
   double *rho = atom->rho;
-  double *mass = atom->mass;
+  
+  double *rmass, *mass;
+  if (atom->rmass_flag) {
+    rmass = atom->rmass;
+    mass  = NULL;
+  } else {
+    rmass = NULL;
+    mass = atom->mass;
+  }
+  
   double *drho = atom->drho;
   int *type = atom->type;
   int nlocal = atom->nlocal;
@@ -123,7 +132,11 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
     jlist = firstneigh[i];
     jnum = numneigh[i];
 
-    imass = mass[itype];
+    if (atom->rmass) {
+      imass = rmass[i];
+    } else {
+      imass = mass[itype];
+    }
 
     // compute pressure of atom i
     double pi  = B[itype] * pow(rho[i] / rho0[itype], gamma[itype] );
@@ -139,7 +152,11 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
       delz = ztmp - x[j][2];
       rsq = delx * delx + dely * dely + delz * delz;
       jtype = type[j];
-      jmass = mass[jtype];
+      if (atom->rmass) {
+	jmass = rmass[j];
+      } else {
+	jmass = mass[jtype];
+      }
 
       if (rsq < cutsq[itype][jtype]) {
 	double rabs = sqrt(rsq);
