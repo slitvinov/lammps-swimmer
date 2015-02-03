@@ -95,10 +95,6 @@ void FixMesoSDPD::initial_integrate(int vflag) {
   double **v = atom->v;
   double **f = atom->f;
   double **vest = atom->vest;
-  double *rho = atom->rho;
-  double *drho = atom->drho;
-  double *e = atom->e;
-  double *de = atom->de;
   double *mass = atom->mass;
   double *rmass = atom->rmass;
   int rmass_flag = atom->rmass_flag;
@@ -120,9 +116,6 @@ void FixMesoSDPD::initial_integrate(int vflag) {
         dtfm = dtf / mass[type[i]];
       }
 
-      e[i] += dtf * de[i]; // half-step update of particle internal energy
-      rho[i] += dtf * drho[i]; // ... and density
-
       // extrapolate velocity for use with velocity-dependent potentials, e.g. SPH
       vest[i][0] = v[i][0] + 2.0 * dtfm * f[i][0];
       vest[i][1] = v[i][1] + 2.0 * dtfm * f[i][1];
@@ -143,14 +136,10 @@ void FixMesoSDPD::initial_integrate(int vflag) {
 
 void FixMesoSDPD::final_integrate() {
 
-  // update v, rho, and e of atoms in group
+  // update v of atoms in group
 
   double **v = atom->v;
   double **f = atom->f;
-  double *e = atom->e;
-  double *de = atom->de;
-  double *rho = atom->rho;
-  double *drho = atom->drho;
   int *type = atom->type;
   int *mask = atom->mask;
   double *mass = atom->mass;
@@ -173,8 +162,6 @@ void FixMesoSDPD::final_integrate() {
       v[i][1] += dtfm * f[i][1];
       v[i][2] += dtfm * f[i][2];
 
-      e[i] += dtf * de[i];
-      rho[i] += dtf * drho[i];
     }
   }
 }
