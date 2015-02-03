@@ -4,6 +4,7 @@ rho0  : 1;
 cutoff: 1;
 soundspeed: 1;
 viscosity: [1, 1];
+gamma: 7;
 
 h: cutoff;
 
@@ -25,7 +26,7 @@ dw(dr):= block([r: vabs(dr)], dr/r * ''(diff(w_scalar(r), r)));
 
 /* Eq. (28) */
 c0: soundspeed;
-P_fun(rho):= ''( (c0^2*rho0) * ( ('rho/rho0)) );
+P_fun(rho):= ''( (c0^2*rho0/gamma) * ( ('rho/rho0)^gamma) );
 
 x: [[5, 5, 5], [5.5, 5, 5]];
 v: [[0, 0, 0], [1,   0, 0]];

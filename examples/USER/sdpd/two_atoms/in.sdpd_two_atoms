@@ -29,9 +29,10 @@ variable        viscosity  equal 1
 variable        kb         equal 1.3806488e-23
 #variable        T          equal 1/${kb}
 variable        T          equal 0
+variable        gamma      equal 7
 
 pair_style      sph/sdpd 123456
-pair_coeff	* * lucy ${rho0} ${soundspeed} ${viscosity} ${T} ${cutoff}
+pair_coeff	* * lucy ${rho0} ${soundspeed} ${viscosity} ${T} ${gamma} ${cutoff}
 
 fix	        1 all meso
 neigh_modify    delay 0 every 1
