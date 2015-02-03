@@ -1,0 +1,16 @@
+compute             ktemp all temp
+variable            reftemp equal c_ktemp/${sph_temperature}
+
+compute             rho_max all reduce max c_rho_peratom
+compute             rho_min all reduce min c_rho_peratom
+
+variable            rho_min equal c_rho_min
+variable            rho_max equal c_rho_max
+
+fix                fprint_moments all print ${printer_freq} &
+                   "${physical_time} ${reftemp} $(vcm(all,x)) $(vcm(all,y)) $(vcm(all,z)) &
+                    ${rho_min} ${rho_max}" &
+		   screen no file ${dname}/moments.dat
+
+thermo_style       custom step v_reftemp c_rho_min c_rho_max
+thermo             ${thermo_freq}
