@@ -69,7 +69,7 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
 
   int *ilist, *jlist, *numneigh, **firstneigh;
   double vxtmp, vytmp, vztmp, imass, jmass, fvisc, velx, vely, velz;
-  double rsq, wfd, delVdotDelR, deltaE;
+  double rsq, wfd, delVdotDelR;
 
   if (eflag || vflag)
     ev_setup(eflag, vflag);
@@ -81,7 +81,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
   double **f = atom->f;
   double *rho = atom->rho;
   double *mass = atom->mass;
-  double *de = atom->de;
   double *drho = atom->drho;
   int *type = atom->type;
   int nlocal = atom->nlocal;
@@ -192,7 +191,6 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
 	  frz = 0.0;
 	}
 
-        deltaE = -0.5 *(fpair * delVdotDelR + fvisc * (velx*velx + vely*vely + velz*velz));
 
 	// printf("testvar= %f, %f \n", delx, dely);
         f[i][0] += delx * fpair + velx * fvisc + frx;
@@ -202,15 +200,11 @@ void PairSPHSDPD::compute(int eflag, int vflag) {
         // and change in density
         drho[i] += jmass * delVdotDelR * wfd;
 
-        // change in thermal energy
-        de[i] += deltaE;
-
         if (newton_pair || j < nlocal) {
           f[j][0] -= delx * fpair + velx * fvisc + frx;
           f[j][1] -= dely * fpair + vely * fvisc + fry;
           f[j][2] -= delz * fpair + velz * fvisc + frz;
 
-          de[j] += deltaE;
           drho[j] += imass * delVdotDelR * wfd;
         }
 
