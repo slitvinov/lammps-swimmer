@@ -15,6 +15,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "pair_sph_heatconduction.h"
+#include "sph_energy_equation.h"
 #include "atom.h"
 #include "force.h"
 #include "comm.h"
@@ -71,6 +72,7 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
   double *de = atom->de;
   double *mass = atom->mass;
   double *rho = atom->rho;
+  double *cv = atom->cv;
   int *type = atom->type;
   int nlocal = atom->nlocal;
   int newton_pair = force->newton_pair;
@@ -113,13 +115,12 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
         jmass = mass[jtype];
         D = alpha[itype][jtype]; // diffusion coefficient
 
-        deltaE = 2.0 * imass * jmass / (imass+jmass);
-        deltaE *= (rho[i] + rho[j]) / (rho[i] * rho[j]);
-        deltaE *= D * (e[i] - e[j]) * wfd;
-
-        de[i] += deltaE;
+        double Ti = sph_energy2t(e[i], cv[i]);
+	double Tj = sph_energy2t(e[j], cv[j]);
+        double deltaE = 2.0*D*(Ti - Tj)*wfd/(rho[i]*rho[j]);
+        de[i] += deltaE*jmass;
         if (newton_pair || j < nlocal) {
-          de[j] -= deltaE;
+          de[j] -= deltaE*imass;
         }
 
       }
