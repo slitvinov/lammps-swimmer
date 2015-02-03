@@ -7,6 +7,7 @@ set -u
 
 lmp=../../../../src/lmp_linux
 mpirun=mpirun.mpich
+nproc=2
 
-${lmp}  -in in.run
+${mpirun} -np ${nproc} ${lmp} -in in.run
 

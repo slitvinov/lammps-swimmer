@@ -4,7 +4,7 @@ variable           vacfy  equal c_vacf[2]
 variable           vacfz  equal c_vacf[3]
 variable           vacfv  equal c_vacf[4]
 
-fix                fprint_moments all print ${printer_freq} &
+fix                fprint_moments all print ${print_freq} &
                    "${physical_time} &
                     ${vacfx} ${vacfy} ${vacfz} ${vacfv}" &
 		   screen no file ${dname}/vacf.dat

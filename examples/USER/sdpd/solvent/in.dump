@@ -9,5 +9,5 @@ else &
 "dump               dump_img all image ${img_freq} ${dname}/dump.*.jpg type type adiam ${image_diam} zoom ${image_zoom} size 512 512 view 0 30"
 dump_modify         dump_img pad 9
 
-dump               dump_txt all custom ${saver_freq} ${dname}/dump.*.dat id type x y z vx vy vz c_rho_peratom
+dump               dump_txt all custom ${dump_freq} ${dname}/dump.*.dat id type x y z vx vy vz c_rho_peratom
 dump_modify        dump_txt pad 9

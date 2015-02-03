@@ -7,7 +7,7 @@ compute             rho_min all reduce min c_rho_peratom
 variable            rho_min equal c_rho_min
 variable            rho_max equal c_rho_max
 
-fix                fprint_moments all print ${printer_freq} &
+fix                fprint_moments all print ${print_freq} &
                    "${physical_time} ${reftemp} $(vcm(all,x)) $(vcm(all,y)) $(vcm(all,z)) &
                     ${rho_min} ${rho_max}" &
 		   screen no file ${dname}/moments.dat
