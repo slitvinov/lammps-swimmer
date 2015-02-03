@@ -1,0 +1,7 @@
+p(rho):= B*(rho/rho_0)^gamma;
+dp(rho):= ''(diff(p(rho), rho));
+
+eq: c^2 = dp(rho_0);
+
+solve(eq, B)[1];
+grind(%);
