@@ -91,7 +91,15 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
   double **x = atom->x;
   double *rho = atom->rho;
   int *type = atom->type;
-  double *mass = atom->mass;
+  double *rmass, *mass;
+  if (atom->rmass_flag) {
+    rmass = atom->rmass;
+    mass  = NULL;
+  } else {
+    rmass = NULL;
+    mass = atom->mass;
+  }
+
 
   // check consistency of pair coefficients
 
@@ -127,9 +135,13 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
       for (ii = 0; ii < inum; ii++) {
         i = ilist[ii];
         itype = type[i];
-        imass = mass[itype];
 	wf = ker[itype][itype]->w(0.0, cut[itype][itype]);
-        rho[i] = imass * wf;
+	
+	if (atom->rmass_flag) {
+	  rho[i] = rmass[i] * wf;
+	} else {
+	  rho[i] = mass[itype] * wf;
+	}
       }
 
       // add density at each atom via kernel function overlap
@@ -155,9 +167,12 @@ void PairSPHRhoSum::compute(int eflag, int vflag) {
           if (rsq < cutsq[itype][jtype]) {
 	    wf = ker[itype][jtype]->w(sqrt(rsq), cut[itype][jtype]);
 
-            rho[i] += mass[jtype] * wf;
+	    if (atom->rmass_flag) {
+	      rho[i] += rmass[j] * wf;
+	    } else {
+	      rho[i] += mass[jtype] * wf;
+	    }
           }
-
         }
       }
     }

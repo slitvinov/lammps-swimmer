@@ -25,9 +25,10 @@ fix                integrate_fix_full all  meso
 neighbor           0 bin
 neigh_modify       delay 0 every 1
 
+
 compute            rho_peratom all meso_rho/atom
-include            in.dump
 include            settimestep.lmp
+variable            dt      equal  ${dt}/${saver_freq}
 
 compute             ktemp all temp
 variable            reftemp equal c_ktemp/${sph_temperature}
@@ -37,6 +38,7 @@ compute             rho_max all reduce max c_rho_peratom
 compute             rho_min all reduce min c_rho_peratom
 
 group               gpolymer    type ${atom_type_polymer}
+group               gsolvetn    subtract all gpolymer
 compute             rg          gpolymer gyration
 
 fix                fprint_polymer all print ${printer_freq} "${physical_time} $(c_rg)" &
@@ -44,14 +46,18 @@ fix                fprint_polymer all print ${printer_freq} "${physical_time} $(
 
 fix                fprint_moments all print ${printer_freq} &
                    "${physical_time} $(vcm(all,x)) $(vcm(all,y)) $(vcm(all,z))  &
-		    $(vcm(gpolymer,x)) $(vcm(gpolymer,y)) $(vcm(gpolymer,z))" &
+		    $(vcm(gpolymer,x)) $(vcm(gpolymer,y)) $(vcm(gpolymer,z))"   &
 		   screen no file ${dname}/moments.dat
 
 thermo_style       custom step v_reftemp c_rho_min c_rho_max
 thermo             ${printer_freq}
 
-##################### production run
 include            in.pairs
 timestep           ${dt}
 
+##################### pre-run
+run                ${prerun_nstep}
+
+##################### production run
+include            in.dump
 run                ${nstep}

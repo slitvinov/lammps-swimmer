@@ -1,0 +1,14 @@
+# definition of pairs
+variable           sph_formulation string sph/sdpd
+
+pair_style         hybrid/overlay   sph/rhosum 1 sph/sdpd 123456 sph/heatconduction
+# pair_style         hybrid/overlay sph/rhosum 1 ${sph_formulation} 12345
+
+pair_coeff	   ${atom_type_solvent}  ${atom_type_solvent} &
+                   ${sph_formulation}  quintic ${sph_rho0} ${sph_c} ${sph_eta} ${sph_temperature} ${sph_gamma} ${h}
+
+pair_coeff         ${atom_type_solvent}  ${atom_type_solvent} &
+		   sph/rhosum          quintic ${h}
+
+pair_coeff         ${atom_type_solvent}  ${atom_type_solvent} &
+                   sph/heatconduction  quintic ${alpha} ${h}

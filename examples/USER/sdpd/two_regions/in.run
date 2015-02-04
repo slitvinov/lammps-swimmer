@@ -1,0 +1,67 @@
+echo               both
+
+include            in.vars
+dimension          ${ndim}
+units              si
+atom_modify        map array sort 0 0
+atom_style         sph
+comm_modify        vel yes
+log                ${dname}/lammps.log
+
+# positive and negative "small" number
+variable           p_epsion equal ${h}/100.0
+variable           n_epsion equal -${h}/100.0
+if ${ndim}==2      then &
+"region             box block 0 ${Lx} 0 ${Ly} ${n_epsion} ${p_epsion} units box" &
+else &
+"region             box block 0 ${Lx} 0 ${Ly} 0  ${Lz} units box"
+
+create_box         1 box # only one type of atoms solven (1)
+
+if ${ndim}==2      then &
+"lattice            sq ${dx} origin 0.5 0.5 0.0" &
+else &
+"lattice            sc ${dx} origin 0.5 0.5 0.5"
+
+create_atoms       1  box
+
+variable        Natoms equal count(all)
+if ${ndim}==2 then "variable domain_volume equal ${Lx}*${Ly}" else "variable domain_volume equal ${Lx}*${Ly}*${Lz}"
+
+variable       sph_mass             equal ${sph_rho}*${domain_volume}/${Natoms}
+
+#variable       xcenter                 equal 0.5*${Lx}
+#set            group all meso_cv  1.0
+#region         scn_half                block 0 ${xcenter} 0 EDGE INF INF units box
+#set            region scn_half meso_cv 2.0
+
+set                group all meso_e   1.0
+set                group all mass     1.0
+
+
+mass           ${atom_type_solvent} ${sph_mass}
+
+# do full time integration
+fix                integrate_fix_full all  meso/energy
+
+
+neighbor           0 bin
+neigh_modify       delay 0 every 1
+
+compute            rho_peratom all meso_rho/atom
+include            settimestep.lmp
+variable            physical_time equal ${dt}*step
+include            in.print
+
+timestep           ${dt}
+
+##################### pre-run
+include            in.pairs
+run                ${prerun_nstep}
+
+##################### production run
+variable           sph_temperature equal 0.0
+include            in.pairs
+include            in.dump
+include            in.statistics
+run                ${nstep}

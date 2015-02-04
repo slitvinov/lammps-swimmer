@@ -113,6 +113,15 @@ void FixMesoEnergy::initial_integrate(int vflag) {
   for (i = 0; i < nlocal; i++) {
     if (mask[i] & groupbit) {
       if (rmass_flag) {
+	/// TODO: make the mass dynamic
+	/// ============
+	double rmass_old = rmass[i];
+	double rmass_new = e[i] * 0.000277777777777778;
+	v[i][0] = sqrt(rmass_new/rmass_old)*v[i][0];
+	v[i][1] = sqrt(rmass_new/rmass_old)*v[i][1];
+	v[i][2] = sqrt(rmass_new/rmass_old)*v[i][2];
+	rmass[i] = rmass_new;
+	/// ===========
         dtfm = dtf / rmass[i];
       } else {
         dtfm = dtf / mass[type[i]];
@@ -132,6 +141,10 @@ void FixMesoEnergy::initial_integrate(int vflag) {
       x[i][0] += dtv * v[i][0];
       x[i][1] += dtv * v[i][1];
       x[i][2] += dtv * v[i][2];
+
+      v[i][0] = 0.0;
+      v[i][1] = 0.0;
+      v[i][2] = 0.0;
     }
   }
 }

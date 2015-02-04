@@ -1,0 +1,48 @@
+cv=1, e=1, T=1  |  cv=2, e=2, T=1/2
+
+[0] 1 [1/4] 2 [3/4] 1 [1]
+
+
+******   * * * *
+
+
+
+N;
+[m1, m2]; /* unknown */
+V1,  V2;
+rho       /* known */
+
+eq1: e1 = e2;
+eq2: e1 = m1*v1^2;
+eq3: e2 = m2*v2^2;
+
+solve([eq1, eq2, eq3], [v1, e1, e2]);
+
+
+m1, v1
+m2, v2
+
+dm
+
+eq2: vc = (m1*v1 + m2*v2)/(m1+m2);
+eq3: dxc = vc1*dt;
+
+eq2: vcn = (m1n*v1n + m2n*v2n)/(m1n+m2n);
+eq3: dxcn = vc1n*dt;
+
+
+eq:  dxc2 = dxc1
+
+eq1: m1n = m1 - dm;
+eq2: m2n = m2 + dm;
+eq3: m1*v1 + m2*v2 = m1n*v1n + m2n*v2n;
+eq4: m1*v1^2 + m2*v2^2 = m1*v1^2 + m2*v2^2
+
+
+
+
+
+
+
+
+

@@ -1,14 +1,14 @@
 # move two atoms with SPH
 units           si
-atom_style      sdpd
+atom_style      sph
 atom_modify     map array sort 0 0
 
 region		box block 0 10 0 10 0 10 units box
 create_box	1 box
 comm_modify     vel yes
 
-variable        m      equal 1
-mass            1  ${m}
+mass            1  1e30
+
 create_atoms 1 single 5   5 5 units box
 create_atoms 1 single 5.5 5 5 units box
 
@@ -23,6 +23,9 @@ set                group fst meso_e   1.0
 set                group scd meso_e   2.0
 
 set                group all meso_cv  1.0
+
+set                group fst mass 0.5
+set                group scd mass 1.0
 
 variable        rho0   equal 1
 variable        cutoff equal 1

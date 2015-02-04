@@ -1,0 +1,15 @@
+compute            vacf   all vacf
+variable           vacfx  equal c_vacf[1]
+variable           vacfy  equal c_vacf[2]
+variable           vacfz  equal c_vacf[3]
+variable           vacfv  equal c_vacf[4]
+
+fix                fprint_moments all print ${print_freq} &
+                   "${physical_time} &
+                    ${vacfx} ${vacfy} ${vacfz} ${vacfv}" &
+		   screen no file ${dname}/vacf.dat
+
+variable nstep_m_one equal ${nstep}-1
+compute cRDF all rdf 40 ${atom_type_solvent} ${atom_type_solvent}
+fix     fRDF all ave/time 1 ${nstep_m_one} ${nstep} c_cRDF file ${dname}/rdf.dat mode vector
+		   

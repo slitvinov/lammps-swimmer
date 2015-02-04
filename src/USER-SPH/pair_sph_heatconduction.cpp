@@ -131,12 +131,32 @@ void PairSPHHeatConduction::compute(int eflag, int vflag) {
 
         D = alpha[itype][jtype]; // diffusion coefficient
 
-        double Ti = sph_energy2t(e[i], cv[i]);
-	double Tj = sph_energy2t(e[j], cv[j]);
+	double Ti;
+	int region_i;
+	int region_j;
+	if ( (x[i][0]>0.25) && (x[i][0]<0.75) ) {	
+	  Ti = sph_energy2t(e[i], 2.0);
+	  region_i = 1;
+	} else {
+	  Ti = sph_energy2t(e[i], 1.0);
+	  region_i = 2;
+	}
+
+	double Tj;
+	if ( (x[j][0]>0.25) && (x[j][0]<0.75) ) {
+	  Tj = sph_energy2t(e[j], 2.0);
+	  region_j = 1;
+	} else {
+	  Tj = sph_energy2t(e[j], 1.0);
+	  region_j = 2;	  
+	}
+
+	//	if (region_j!=region_i) return;
+	  
         double deltaE = 2.0*D*(Ti - Tj)*wfd/(rho[i]*rho[j]);
-        de[i] += deltaE*jmass;
+        de[i] += deltaE; //*jmass;
         if (newton_pair || j < nlocal) {
-          de[j] -= deltaE*imass;
+          de[j] -= deltaE; // *imass;
         }
 
       }

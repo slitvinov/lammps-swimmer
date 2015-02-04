@@ -9,7 +9,7 @@ set -u
 Ns=15
 
 # the number of beads in one polymer
-Nb=20
+Nb=2
 
 # 0: bond_style harmonic/swimmer
 # 1: bond_style harmonic/swimmer/extended
